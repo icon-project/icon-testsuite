@@ -1,0 +1,51 @@
+/*
+ * Copyright (c) 2018 ICON Foundation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package foundation.icon.tests;
+
+import foundation.icon.icx.Call;
+import foundation.icon.icx.IconService;
+import foundation.icon.icx.data.Address;
+import foundation.icon.icx.transport.jsonrpc.RpcItem;
+import foundation.icon.icx.transport.jsonrpc.RpcObject;
+import foundation.icon.icx.transport.jsonrpc.RpcValue;
+
+import java.io.IOException;
+
+class TokenScore {
+    private final IconService iconService;
+    private final Address address;
+
+    TokenScore(IconService iconService, Address address) {
+        this.iconService = iconService;
+        this.address = address;
+
+        //TODO: check if this is really a token SCORE that conforms to IRC2
+    }
+
+    RpcItem balanceOf(Address owner) throws IOException {
+        RpcObject params = new RpcObject.Builder()
+                .put("_owner", new RpcValue(owner))
+                .build();
+        Call<RpcItem> call = new Call.Builder()
+                .from(owner)
+                .to(address)
+                .method("balanceOf")
+                .params(params)
+                .build();
+        return iconService.call(call).execute();
+    }
+}
