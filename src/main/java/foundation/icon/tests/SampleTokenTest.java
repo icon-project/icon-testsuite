@@ -39,7 +39,8 @@ import java.util.List;
 
 public class SampleTokenTest {
     private static final Address ZERO_ADDRESS = new Address("cx0000000000000000000000000000000000000000");
-    static final BigInteger NETWORK_ID = new BigInteger("3");
+    private static final BigInteger STATUS_SUCCESS = BigInteger.ONE;
+    static final BigInteger NETWORK_ID = BigInteger.valueOf(3);
 
     private static int txCount = 0;
     private IconService iconService;
@@ -75,21 +76,6 @@ public class SampleTokenTest {
                 .nonce(new BigInteger("1"))
                 .deploy(contentType, content)
                 .params(params)
-                .build();
-
-        SignedTransaction signedTransaction = new SignedTransaction(transaction, fromWallet);
-        return iconService.sendTransaction(signedTransaction).execute();
-    }
-
-    private Bytes sendTransaction(Wallet fromWallet, Address scoreAddress, String function) throws IOException {
-        long timestamp = System.currentTimeMillis() * 1000L;
-        Transaction transaction = TransactionBuilder.of(SampleTokenTest.NETWORK_ID)
-                .from(fromWallet.getAddress())
-                .to(scoreAddress)
-                .stepLimit(new BigInteger("2000000"))
-                .timestamp(new BigInteger(Long.toString(timestamp)))
-                .nonce(new BigInteger("1"))
-                .call(function)
                 .build();
 
         SignedTransaction signedTransaction = new SignedTransaction(transaction, fromWallet);
@@ -174,33 +160,36 @@ public class SampleTokenTest {
 
         // get the address of token score
         TransactionResult result = tokenTest.getTransactionResult(txHash);
-        if (!BigInteger.valueOf(1).equals(result.getStatus())) {
+        if (!STATUS_SUCCESS.equals(result.getStatus())) {
             throw new IOException("Failed to deploy.");
         }
         Address tokenScoreAddress = new Address(result.getScoreAddress());
         System.out.println("SampleToken address: " + tokenScoreAddress);
 
+        // check the initial token supply owned by score deployer
+        TokenScore tokenScore = new TokenScore(iconService, tokenScoreAddress);
+        RpcItem balance = tokenScore.balanceOf(ownerWallet.getAddress());
+        System.out.println("initial token supply: " + balance.asInteger());
+
         // deploy crowd sale
         params = new RpcObject.Builder()
                 .put("fundingGoalInIcx", new RpcValue(new BigInteger("100")))
                 .put("tokenScore", new RpcValue(tokenScoreAddress))
-                .put("durationInBlocks", new RpcValue(new BigInteger("16")))
+                .put("durationInBlocks", new RpcValue(new BigInteger("10")))
                 .build();
         txHash = tokenTest.deployScore(ownerWallet, "/ws/tests/crowdSale.zip", params);
         printTransactionHash("CrowdSale deploy", txHash);
 
         // get the address of crowd sale score
         result = tokenTest.getTransactionResult(txHash);
-        if (!BigInteger.valueOf(1).equals(result.getStatus())) {
+        if (!STATUS_SUCCESS.equals(result.getStatus())) {
             throw new IOException("Failed to deploy.");
         }
         Address crowdSaleScoreAddress = new Address(result.getScoreAddress());
         System.out.println("CrowdSaleScore address: " + crowdSaleScoreAddress);
 
-        // check the initial token supply owned by score deployer
-        TokenScore tokenScore = new TokenScore(iconService, tokenScoreAddress);
-        RpcItem balance = tokenScore.balanceOf(ownerWallet.getAddress());
-        System.out.println("initial token supply: " + balance.asInteger());
+        // create a CrowdSale instance
+        CrowdSaleScore crowdSaleScore = new CrowdSaleScore(iconService, crowdSaleScoreAddress);
 
         // send 50 icx to Alice
         txHash = tokenTest.transferIcx(genesisWallet, aliceWallet.getAddress(), "50");
@@ -264,7 +253,7 @@ public class SampleTokenTest {
         // check if goal reached
         boolean exitLoop = false;
         while (true) {
-            txHash = tokenTest.sendTransaction(ownerWallet, crowdSaleScoreAddress, "check_goal_reached");
+            txHash = crowdSaleScore.checkGoalReached(ownerWallet);
             printTransactionHash("checkGoalReached", txHash);
             result = tokenTest.getTransactionResult(txHash);
             List<EventLog> eventLogs = result.getEventLogs();
@@ -288,7 +277,7 @@ public class SampleTokenTest {
         }
 
         // do safe withdrawal
-        txHash = tokenTest.sendTransaction(ownerWallet, crowdSaleScoreAddress, "safe_withdrawal");
+        txHash = crowdSaleScore.safeWithdrawal(ownerWallet);
         printTransactionHash("safeWithdrawal", txHash);
         result = tokenTest.getTransactionResult(txHash);
         List<EventLog> eventLogs = result.getEventLogs();
