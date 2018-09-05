@@ -81,7 +81,7 @@ public class SampleTokenTest {
         return iconService.sendTransaction(signedTransaction).execute();
     }
 
-    private Bytes checkGoalReached(Wallet fromWallet, Address scoreAddress) throws IOException {
+    private Bytes sendTransaction(Wallet fromWallet, Address scoreAddress, String function) throws IOException {
         long timestamp = System.currentTimeMillis() * 1000L;
         Transaction transaction = TransactionBuilder.of(SampleTokenTest.NETWORK_ID)
                 .from(fromWallet.getAddress())
@@ -89,7 +89,7 @@ public class SampleTokenTest {
                 .stepLimit(new BigInteger("2000000"))
                 .timestamp(new BigInteger(Long.toString(timestamp)))
                 .nonce(new BigInteger("1"))
-                .call("check_goal_reached")
+                .call(function)
                 .build();
 
         SignedTransaction signedTransaction = new SignedTransaction(transaction, fromWallet);
@@ -264,7 +264,7 @@ public class SampleTokenTest {
         // check if goal reached
         boolean exitLoop = false;
         while (true) {
-            txHash = tokenTest.checkGoalReached(ownerWallet, crowdSaleScoreAddress);
+            txHash = tokenTest.sendTransaction(ownerWallet, crowdSaleScoreAddress, "check_goal_reached");
             printTransactionHash("checkGoalReached", txHash);
             result = tokenTest.getTransactionResult(txHash);
             List<EventLog> eventLogs = result.getEventLogs();
@@ -288,5 +288,15 @@ public class SampleTokenTest {
         }
 
         // do safe withdrawal
+        txHash = tokenTest.sendTransaction(ownerWallet, crowdSaleScoreAddress, "safe_withdrawal");
+        printTransactionHash("safeWithdrawal", txHash);
+        result = tokenTest.getTransactionResult(txHash);
+        List<EventLog> eventLogs = result.getEventLogs();
+        for (EventLog event : eventLogs) {
+            if (event.getScoreAddress().equals(crowdSaleScoreAddress.toString())) {
+                String funcSig = event.getIndexed().get(0).asString();
+                System.out.println("function sig: " + funcSig);
+            }
+        }
     }
 }
