@@ -54,7 +54,7 @@ public class SampleTokenTest {
                 .from(fromWallet.getAddress())
                 .to(to)
                 .value(IconAmount.of(value, IconAmount.Unit.ICX).toLoop())
-                .stepLimit(new BigInteger("10000"))
+                .stepLimit(new BigInteger("2000000"))
                 .timestamp(new BigInteger(Long.toString(timestamp)))
                 .nonce(new BigInteger("1"))
                 .build();
@@ -70,7 +70,7 @@ public class SampleTokenTest {
         Transaction transaction = TransactionBuilder.of(NETWORK_ID)
                 .from(fromWallet.getAddress())
                 .to(ZERO_ADDRESS)
-                .stepLimit(new BigInteger("20000000"))
+                .stepLimit(new BigInteger("80000000"))
                 .timestamp(new BigInteger(Long.toString(timestamp)))
                 .nonce(new BigInteger("1"))
                 .deploy(contentType, content)
@@ -86,7 +86,7 @@ public class SampleTokenTest {
         Transaction transaction = TransactionBuilder.of(SampleTokenTest.NETWORK_ID)
                 .from(fromWallet.getAddress())
                 .to(scoreAddress)
-                .stepLimit(new BigInteger("20000"))
+                .stepLimit(new BigInteger("2000000"))
                 .timestamp(new BigInteger(Long.toString(timestamp)))
                 .nonce(new BigInteger("1"))
                 .call("check_goal_reached")
@@ -170,10 +170,13 @@ public class SampleTokenTest {
                 .put("decimals", new RpcValue(new BigInteger("18")))
                 .build();
         Bytes txHash = tokenTest.deployScore(ownerWallet, "/ws/tests/sampleToken.zip", params);
-        System.out.println("SampleToken deploy txHash: " + txHash);
+        printTransactionHash("SampleToken deploy", txHash);
 
         // get the address of token score
         TransactionResult result = tokenTest.getTransactionResult(txHash);
+        if (!BigInteger.valueOf(1).equals(result.getStatus())) {
+            throw new IOException("Failed to deploy.");
+        }
         Address tokenScoreAddress = new Address(result.getScoreAddress());
         System.out.println("SampleToken address: " + tokenScoreAddress);
 
@@ -184,10 +187,13 @@ public class SampleTokenTest {
                 .put("durationInBlocks", new RpcValue(new BigInteger("16")))
                 .build();
         txHash = tokenTest.deployScore(ownerWallet, "/ws/tests/crowdSale.zip", params);
-        System.out.println("CrowdSale deploy txHash: " + txHash);
+        printTransactionHash("CrowdSale deploy", txHash);
 
         // get the address of crowd sale score
         result = tokenTest.getTransactionResult(txHash);
+        if (!BigInteger.valueOf(1).equals(result.getStatus())) {
+            throw new IOException("Failed to deploy.");
+        }
         Address crowdSaleScoreAddress = new Address(result.getScoreAddress());
         System.out.println("CrowdSaleScore address: " + crowdSaleScoreAddress);
 

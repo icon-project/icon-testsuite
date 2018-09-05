@@ -61,7 +61,7 @@ class TokenScore {
         Transaction transaction = TransactionBuilder.of(SampleTokenTest.NETWORK_ID)
                 .from(fromWallet.getAddress())
                 .to(scoreAddress)
-                .stepLimit(new BigInteger("20000"))
+                .stepLimit(new BigInteger("2000000"))
                 .timestamp(new BigInteger(Long.toString(timestamp)))
                 .nonce(new BigInteger("1"))
                 .call("transfer")
