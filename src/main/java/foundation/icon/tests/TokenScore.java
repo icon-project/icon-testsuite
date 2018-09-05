@@ -16,22 +16,24 @@
 
 package foundation.icon.tests;
 
-import foundation.icon.icx.Call;
-import foundation.icon.icx.IconService;
+import foundation.icon.icx.*;
 import foundation.icon.icx.data.Address;
+import foundation.icon.icx.data.Bytes;
+import foundation.icon.icx.data.IconAmount;
 import foundation.icon.icx.transport.jsonrpc.RpcItem;
 import foundation.icon.icx.transport.jsonrpc.RpcObject;
 import foundation.icon.icx.transport.jsonrpc.RpcValue;
 
 import java.io.IOException;
+import java.math.BigInteger;
 
 class TokenScore {
     private final IconService iconService;
-    private final Address address;
+    private final Address scoreAddress;
 
-    TokenScore(IconService iconService, Address address) {
+    TokenScore(IconService iconService, Address scoreAddress) {
         this.iconService = iconService;
-        this.address = address;
+        this.scoreAddress = scoreAddress;
 
         //TODO: check if this is really a token SCORE that conforms to IRC2
     }
@@ -42,10 +44,31 @@ class TokenScore {
                 .build();
         Call<RpcItem> call = new Call.Builder()
                 .from(owner)
-                .to(address)
+                .to(scoreAddress)
                 .method("balanceOf")
                 .params(params)
                 .build();
         return iconService.call(call).execute();
+    }
+
+    Bytes transfer(Wallet fromWallet, Address toAddress, String value) throws IOException {
+        RpcObject params = new RpcObject.Builder()
+                .put("_to", new RpcValue(toAddress))
+                .put("_value", new RpcValue(IconAmount.of(value, 18).toLoop()))
+                .build();
+
+        long timestamp = System.currentTimeMillis() * 1000L;
+        Transaction transaction = TransactionBuilder.of(SampleTokenTest.NETWORK_ID)
+                .from(fromWallet.getAddress())
+                .to(scoreAddress)
+                .stepLimit(new BigInteger("20000"))
+                .timestamp(new BigInteger(Long.toString(timestamp)))
+                .nonce(new BigInteger("1"))
+                .call("transfer")
+                .params(params)
+                .build();
+
+        SignedTransaction signedTransaction = new SignedTransaction(transaction, fromWallet);
+        return iconService.sendTransaction(signedTransaction).execute();
     }
 }
