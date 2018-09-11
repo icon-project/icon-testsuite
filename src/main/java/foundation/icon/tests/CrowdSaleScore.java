@@ -48,10 +48,10 @@ class CrowdSaleScore {
     }
 
     Bytes checkGoalReached(Wallet fromWallet) throws IOException {
-        return sendTransaction(fromWallet, scoreAddress, "check_goal_reached");
+        return sendTransaction(fromWallet, scoreAddress, "checkGoalReached");
     }
 
     Bytes safeWithdrawal(Wallet fromWallet) throws IOException {
-        return sendTransaction(fromWallet, scoreAddress, "safe_withdrawal");
+        return sendTransaction(fromWallet, scoreAddress, "safeWithdrawal");
     }
 }

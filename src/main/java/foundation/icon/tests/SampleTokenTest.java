@@ -71,7 +71,7 @@ public class SampleTokenTest {
         Transaction transaction = TransactionBuilder.of(NETWORK_ID)
                 .from(fromWallet.getAddress())
                 .to(ZERO_ADDRESS)
-                .stepLimit(new BigInteger("80000000"))
+                .stepLimit(new BigInteger("90000000"))
                 .timestamp(new BigInteger(Long.toString(timestamp)))
                 .nonce(new BigInteger("1"))
                 .deploy(contentType, content)
@@ -127,7 +127,8 @@ public class SampleTokenTest {
     private static KeyWallet readWalletFromFile(String path) throws IOException {
         try {
             File file = new File(path);
-            return KeyWallet.load("P@sswOrd", file);
+//            return KeyWallet.load("P@sswOrd", file);
+            return KeyWallet.load("test1_Account", file);
         } catch (CipherException e) {
             e.printStackTrace();
             throw new IOException("Key load failed!");
@@ -143,7 +144,7 @@ public class SampleTokenTest {
         IconService iconService = new IconService(new HttpProvider(URL));
         SampleTokenTest tokenTest = new SampleTokenTest(iconService);
 
-        KeyWallet genesisWallet = readWalletFromFile("/ws/tests/keystore_genesis.json");
+        KeyWallet genesisWallet = readWalletFromFile("/ws/tests/keystore_test1.json");
         KeyWallet ownerWallet = createAndStoreWallet();
         KeyWallet aliceWallet = createAndStoreWallet();
         KeyWallet bobWallet = createAndStoreWallet();
@@ -152,8 +153,8 @@ public class SampleTokenTest {
         // deploy sample token
         String initialSupply = "1000";
         RpcObject params = new RpcObject.Builder()
-                .put("initialSupply", new RpcValue(new BigInteger(initialSupply)))
-                .put("decimals", new RpcValue(new BigInteger("18")))
+                .put("_initialSupply", new RpcValue(new BigInteger(initialSupply)))
+                .put("_decimals", new RpcValue(new BigInteger("18")))
                 .build();
         Bytes txHash = tokenTest.deployScore(ownerWallet, "/ws/tests/sampleToken.zip", params);
         printTransactionHash("SampleToken deploy", txHash);
@@ -173,9 +174,9 @@ public class SampleTokenTest {
 
         // deploy crowd sale
         params = new RpcObject.Builder()
-                .put("fundingGoalInIcx", new RpcValue(new BigInteger("100")))
-                .put("tokenScore", new RpcValue(tokenScoreAddress))
-                .put("durationInBlocks", new RpcValue(new BigInteger("10")))
+                .put("_fundingGoalInIcx", new RpcValue(new BigInteger("100")))
+                .put("_tokenScore", new RpcValue(tokenScoreAddress))
+                .put("_durationInBlocks", new RpcValue(new BigInteger("10")))
                 .build();
         txHash = tokenTest.deployScore(ownerWallet, "/ws/tests/crowdSale.zip", params);
         printTransactionHash("CrowdSale deploy", txHash);
