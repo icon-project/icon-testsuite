@@ -18,6 +18,7 @@ package foundation.icon.tests;
 
 import foundation.icon.icx.*;
 import foundation.icon.icx.data.*;
+import foundation.icon.icx.data.TransactionResult.EventLog;
 import foundation.icon.icx.transport.http.HttpProvider;
 import foundation.icon.icx.transport.jsonrpc.RpcError;
 import foundation.icon.icx.transport.jsonrpc.RpcItem;
@@ -51,7 +52,8 @@ public class SampleTokenTest {
 
     private Bytes transferIcx(Wallet fromWallet, Address to, String value) throws IOException {
         long timestamp = System.currentTimeMillis() * 1000L;
-        Transaction transaction = TransactionBuilder.of(NETWORK_ID)
+        Transaction transaction = TransactionBuilder.newBuilder()
+                .nid(NETWORK_ID)
                 .from(fromWallet.getAddress())
                 .to(to)
                 .value(IconAmount.of(value, IconAmount.Unit.ICX).toLoop())
@@ -68,7 +70,8 @@ public class SampleTokenTest {
         String contentType = "application/zip";
         byte[] content = readFile(zipfile);
         long timestamp = System.currentTimeMillis() * 1000L;
-        Transaction transaction = TransactionBuilder.of(NETWORK_ID)
+        Transaction transaction = TransactionBuilder.newBuilder()
+                .nid(NETWORK_ID)
                 .from(fromWallet.getAddress())
                 .to(ZERO_ADDRESS)
                 .stepLimit(new BigInteger("90000000"))
