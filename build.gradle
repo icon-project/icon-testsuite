@@ -23,6 +23,6 @@ mainClassName = 'foundation.icon.tests.SampleTokenTest'
 dependencies {
     implementation "com.squareup.okhttp3:okhttp:3.11.0"
     implementation "com.squareup.okhttp3:logging-interceptor:3.11.0"
-    implementation 'foundation.icon:icon-sdk:0.9.6'
+    implementation 'foundation.icon:icon-sdk:0.9.10'
     testImplementation 'junit:junit:4.12'
 }

@@ -17,6 +17,7 @@
 package foundation.icon.tests;
 
 import foundation.icon.icx.*;
+import foundation.icon.icx.crypto.KeystoreException;
 import foundation.icon.icx.data.*;
 import foundation.icon.icx.data.TransactionResult.EventLog;
 import foundation.icon.icx.transport.http.HttpProvider;
@@ -24,7 +25,6 @@ import foundation.icon.icx.transport.jsonrpc.RpcError;
 import foundation.icon.icx.transport.jsonrpc.RpcItem;
 import foundation.icon.icx.transport.jsonrpc.RpcObject;
 import foundation.icon.icx.transport.jsonrpc.RpcValue;
-import org.web3j.crypto.CipherException;
 
 import java.io.File;
 import java.io.IOException;
@@ -121,7 +121,7 @@ public class SampleTokenTest {
         } catch (InvalidAlgorithmParameterException | NoSuchAlgorithmException | NoSuchProviderException e) {
             e.printStackTrace();
             throw new IOException("Key creation failed!");
-        } catch (CipherException e) {
+        } catch (KeystoreException e) {
             e.printStackTrace();
             throw new IOException("Key store failed!");
         }
@@ -132,7 +132,7 @@ public class SampleTokenTest {
             File file = new File(path);
 //            return KeyWallet.load("P@sswOrd", file);
             return KeyWallet.load("test1_Account", file);
-        } catch (CipherException e) {
+        } catch (KeystoreException e) {
             e.printStackTrace();
             throw new IOException("Key load failed!");
         }
