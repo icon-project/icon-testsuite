@@ -85,10 +85,6 @@ public class SampleTokenTest {
         return iconService.sendTransaction(signedTransaction).execute();
     }
 
-    private BigInteger getIcxBalance(Address address) throws IOException {
-        return iconService.getBalance(address).execute();
-    }
-
     private TransactionResult getTransactionResult(Bytes txHash) throws IOException {
         TransactionResult result = null;
         while (result == null) {
@@ -142,7 +138,48 @@ public class SampleTokenTest {
         System.out.println(header + " txHash " + (++txCount) + ": " + txHash);
     }
 
-    public static void main(String args[]) throws IOException {
+    private static void ensureIcxBalance(IconService iconService, KeyWallet wallet, long value) throws IOException {
+        while (true) {
+            BigInteger icxBalance = iconService.getBalance(wallet.getAddress()).execute();
+            System.out.println("ICX balance of " + wallet.getAddress() + ": " + icxBalance);
+            if (icxBalance.equals(BigInteger.valueOf(0))) {
+                try {
+                    // wait until block confirmation
+                    System.out.println("Sleep 1 second.");
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            } else if (icxBalance.equals(BigInteger.valueOf(value).multiply(BigDecimal.TEN.pow(18).toBigInteger()))) {
+                break;
+            } else {
+                throw new IOException("ICX balance mismatch!");
+            }
+        }
+    }
+
+    private static void ensureTokenBalance(TokenScore tokenScore, KeyWallet wallet, long value) throws IOException {
+        while (true) {
+            RpcItem result = tokenScore.balanceOf(wallet.getAddress());
+            BigInteger balance = result.asInteger();
+            System.out.println("Token balance of " + wallet.getAddress() + ": " + balance);
+            if (balance.equals(BigInteger.valueOf(0))) {
+                try {
+                    // wait until block confirmation
+                    System.out.println("Sleep 1 second.");
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            } else if (balance.equals(BigInteger.valueOf(value).multiply(BigDecimal.TEN.pow(18).toBigInteger()))) {
+                break;
+            } else {
+                throw new IOException("Token balance mismatch!");
+            }
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
         final String URL = "http://localhost:9000/api/v3";
         IconService iconService = new IconService(new HttpProvider(URL));
         SampleTokenTest tokenTest = new SampleTokenTest(iconService);
@@ -153,13 +190,18 @@ public class SampleTokenTest {
         KeyWallet bobWallet = createAndStoreWallet();
         System.out.println("Address of owner: " + ownerWallet.getAddress());
 
+        // transfer initial icx to owner address
+        Bytes txHash = tokenTest.transferIcx(genesisWallet, ownerWallet.getAddress(), "100");
+        printTransactionHash("ICX transfer", txHash);
+        ensureIcxBalance(iconService, ownerWallet, 100);
+
         // deploy sample token
         String initialSupply = "1000";
         RpcObject params = new RpcObject.Builder()
                 .put("_initialSupply", new RpcValue(new BigInteger(initialSupply)))
                 .put("_decimals", new RpcValue(new BigInteger("18")))
                 .build();
-        Bytes txHash = tokenTest.deployScore(ownerWallet, "/ws/tests/sampleToken.zip", params);
+        txHash = tokenTest.deployScore(ownerWallet, "/ws/tests/sampleToken.zip", params);
         printTransactionHash("SampleToken deploy", txHash);
 
         // get the address of token score
@@ -203,28 +245,13 @@ public class SampleTokenTest {
         txHash = tokenTest.transferIcx(genesisWallet, bobWallet.getAddress(), "100");
         printTransactionHash("ICX transfer", txHash);
 
+        // check icx balances of Alice and Bob
+        ensureIcxBalance(iconService, aliceWallet, 50);
+        ensureIcxBalance(iconService, bobWallet, 100);
+
         // transfer all tokens to crowd sale score
         txHash = tokenScore.transfer(ownerWallet, crowdSaleScoreAddress, initialSupply);
         printTransactionHash("TOKEN transfer", txHash);
-
-        // check if Alice has 50 icx
-        while (true) {
-            BigInteger icxBalance = tokenTest.getIcxBalance(aliceWallet.getAddress());
-            System.out.println("ICX balance of Alice: " + icxBalance);
-            if (icxBalance.equals(BigInteger.valueOf(0))) {
-                try {
-                    // wait until block confirmation
-                    System.out.println("Sleep 1 second.");
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            } else if (icxBalance.equals(BigInteger.valueOf(50).multiply(BigDecimal.TEN.pow(18).toBigInteger()))) {
-                break;
-            } else {
-                throw new IOException("Balance mismatch!");
-            }
-        }
 
         // Alice: send 40 icx to crowd sale
         txHash = tokenTest.transferIcx(aliceWallet, crowdSaleScoreAddress, "40");
@@ -234,25 +261,9 @@ public class SampleTokenTest {
         txHash = tokenTest.transferIcx(bobWallet, crowdSaleScoreAddress, "60");
         printTransactionHash("ICX transfer", txHash);
 
-        // check if Alice has 40 tokens for reward
-        while (true) {
-            balance = tokenScore.balanceOf(aliceWallet.getAddress());
-            System.out.println("token balance of Alice: " + balance.asInteger());
-            if (balance.asInteger().equals(BigInteger.valueOf(0))) {
-                try {
-                    // wait until block confirmation
-                    System.out.println("Sleep 1 second.");
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            } else {
-                break;
-            }
-        }
-        // check if Bob has 60 tokens for reward
-        balance = tokenScore.balanceOf(bobWallet.getAddress());
-        System.out.println("token balance of Bob: " + balance.asInteger());
+        // check token balances of Alice and Bob for reward
+        ensureTokenBalance(tokenScore, aliceWallet, 40);
+        ensureTokenBalance(tokenScore, bobWallet, 60);
 
         // check if goal reached
         boolean exitLoop = false;
@@ -285,11 +296,19 @@ public class SampleTokenTest {
         printTransactionHash("safeWithdrawal", txHash);
         result = tokenTest.getTransactionResult(txHash);
         List<EventLog> eventLogs = result.getEventLogs();
+        exitLoop = false;
         for (EventLog event : eventLogs) {
             if (event.getScoreAddress().equals(crowdSaleScoreAddress.toString())) {
                 String funcSig = event.getIndexed().get(0).asString();
                 System.out.println("function sig: " + funcSig);
+                exitLoop = true;
             }
         }
+        if (!exitLoop) {
+            throw new IOException("EventLog must exist!");
+        }
+
+        // check the final icx balance of owner
+        ensureIcxBalance(iconService, ownerWallet, 200);
     }
 }
