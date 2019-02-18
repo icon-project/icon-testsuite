@@ -32,13 +32,13 @@ class CrowdSaleScore {
         this.scoreAddress = scoreAddress;
     }
 
-    private Bytes sendTransaction(Wallet fromWallet, Address scoreAddress, String function) throws IOException {
-        long timestamp = System.currentTimeMillis() * 1000L;
-        Transaction transaction = TransactionBuilder.of(SampleTokenTest.NETWORK_ID)
+    private Bytes sendTransaction(Wallet fromWallet, String function) throws IOException {
+        Transaction transaction = TransactionBuilder.newBuilder()
+                .nid(Constants.NETWORK_ID)
                 .from(fromWallet.getAddress())
                 .to(scoreAddress)
                 .stepLimit(new BigInteger("2000000"))
-                .timestamp(new BigInteger(Long.toString(timestamp)))
+                .timestamp(Utils.getMicroTime())
                 .nonce(new BigInteger("1"))
                 .call(function)
                 .build();
@@ -48,10 +48,10 @@ class CrowdSaleScore {
     }
 
     Bytes checkGoalReached(Wallet fromWallet) throws IOException {
-        return sendTransaction(fromWallet, scoreAddress, "checkGoalReached");
+        return sendTransaction(fromWallet, "checkGoalReached");
     }
 
     Bytes safeWithdrawal(Wallet fromWallet) throws IOException {
-        return sendTransaction(fromWallet, scoreAddress, "safeWithdrawal");
+        return sendTransaction(fromWallet, "safeWithdrawal");
     }
 }

@@ -57,12 +57,12 @@ class TokenScore {
                 .put("_value", new RpcValue(IconAmount.of(value, 18).toLoop()))
                 .build();
 
-        long timestamp = System.currentTimeMillis() * 1000L;
-        Transaction transaction = TransactionBuilder.of(SampleTokenTest.NETWORK_ID)
+        Transaction transaction = TransactionBuilder.newBuilder()
+                .nid(Constants.NETWORK_ID)
                 .from(fromWallet.getAddress())
                 .to(scoreAddress)
                 .stepLimit(new BigInteger("2000000"))
-                .timestamp(new BigInteger(Long.toString(timestamp)))
+                .timestamp(Utils.getMicroTime())
                 .nonce(new BigInteger("1"))
                 .call("transfer")
                 .params(params)

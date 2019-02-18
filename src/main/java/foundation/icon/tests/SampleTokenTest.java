@@ -16,146 +16,35 @@
 
 package foundation.icon.tests;
 
-import foundation.icon.icx.*;
-import foundation.icon.icx.crypto.KeystoreException;
-import foundation.icon.icx.data.*;
+import foundation.icon.icx.IconService;
+import foundation.icon.icx.KeyWallet;
+import foundation.icon.icx.data.Address;
+import foundation.icon.icx.data.Bytes;
+import foundation.icon.icx.data.IconAmount;
+import foundation.icon.icx.data.TransactionResult;
 import foundation.icon.icx.data.TransactionResult.EventLog;
 import foundation.icon.icx.transport.http.HttpProvider;
-import foundation.icon.icx.transport.jsonrpc.RpcError;
 import foundation.icon.icx.transport.jsonrpc.RpcItem;
 import foundation.icon.icx.transport.jsonrpc.RpcObject;
 import foundation.icon.icx.transport.jsonrpc.RpcValue;
 
-import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.util.List;
 
 public class SampleTokenTest {
-    private static final Address ZERO_ADDRESS = new Address("cx0000000000000000000000000000000000000000");
+    private static final String TokenZipfile = "/ws/tests/sampleToken.zip";
+    private static final String CrowdSaleZipfile = "/ws/tests/crowdSale.zip";
     private static final BigInteger STATUS_SUCCESS = BigInteger.ONE;
-    static final BigInteger NETWORK_ID = BigInteger.valueOf(3);
 
     private static int txCount = 0;
-    private IconService iconService;
 
-    private SampleTokenTest(IconService iconService) {
-        this.iconService = iconService;
-    }
-
-    private Bytes transferIcx(Wallet fromWallet, Address to, String value) throws IOException {
-        long timestamp = System.currentTimeMillis() * 1000L;
-        Transaction transaction = TransactionBuilder.newBuilder()
-                .nid(NETWORK_ID)
-                .from(fromWallet.getAddress())
-                .to(to)
-                .value(IconAmount.of(value, IconAmount.Unit.ICX).toLoop())
-                .stepLimit(new BigInteger("2000000"))
-                .timestamp(new BigInteger(Long.toString(timestamp)))
-                .nonce(new BigInteger("1"))
-                .build();
-
-        SignedTransaction signedTransaction = new SignedTransaction(transaction, fromWallet);
-        return iconService.sendTransaction(signedTransaction).execute();
-    }
-
-    private Bytes deployScore(Wallet fromWallet, String zipfile, RpcObject params) throws IOException {
-        String contentType = "application/zip";
-        byte[] content = readFile(zipfile);
-        long timestamp = System.currentTimeMillis() * 1000L;
-        Transaction transaction = TransactionBuilder.newBuilder()
-                .nid(NETWORK_ID)
-                .from(fromWallet.getAddress())
-                .to(ZERO_ADDRESS)
-                .stepLimit(new BigInteger("90000000"))
-                .timestamp(new BigInteger(Long.toString(timestamp)))
-                .nonce(new BigInteger("1"))
-                .deploy(contentType, content)
-                .params(params)
-                .build();
-
-        SignedTransaction signedTransaction = new SignedTransaction(transaction, fromWallet);
-        return iconService.sendTransaction(signedTransaction).execute();
-    }
-
-    private TransactionResult getTransactionResult(Bytes txHash) throws IOException {
-        TransactionResult result = null;
-        while (result == null) {
-            try {
-                result = iconService.getTransactionResult(txHash).execute();
-            } catch (RpcError e) {
-                System.out.println("RpcError: code: " + e.getCode() + ", message: " + e.getMessage());
-                try {
-                    // wait until block confirmation
-                    System.out.println("Sleep 1 second.");
-                    Thread.sleep(1000);
-                } catch (InterruptedException ie) {
-                    ie.printStackTrace();
-                }
-            }
-        }
-        return result;
-    }
-
-    private static byte[] readFile(String zipfile) throws IOException {
-        Path path = Paths.get(zipfile);
-        return Files.readAllBytes(path);
-    }
-
-    private static KeyWallet createAndStoreWallet() throws IOException {
-        try {
-            KeyWallet wallet = KeyWallet.create();
-            KeyWallet.store(wallet, "P@sswOrd", new File("/tmp"));
-            return wallet;
-        } catch (InvalidAlgorithmParameterException | NoSuchAlgorithmException | NoSuchProviderException e) {
-            e.printStackTrace();
-            throw new IOException("Key creation failed!");
-        } catch (KeystoreException e) {
-            e.printStackTrace();
-            throw new IOException("Key store failed!");
-        }
-    }
-
-    private static KeyWallet readWalletFromFile(String path) throws IOException {
-        try {
-            File file = new File(path);
-//            return KeyWallet.load("P@sswOrd", file);
-            return KeyWallet.load("test1_Account", file);
-        } catch (KeystoreException e) {
-            e.printStackTrace();
-            throw new IOException("Key load failed!");
-        }
+    private SampleTokenTest() {
     }
 
     private static void printTransactionHash(String header, Bytes txHash) {
-        System.out.println(header + " txHash " + (++txCount) + ": " + txHash);
-    }
-
-    private static void ensureIcxBalance(IconService iconService, KeyWallet wallet, long value) throws IOException {
-        while (true) {
-            BigInteger icxBalance = iconService.getBalance(wallet.getAddress()).execute();
-            System.out.println("ICX balance of " + wallet.getAddress() + ": " + icxBalance);
-            if (icxBalance.equals(BigInteger.valueOf(0))) {
-                try {
-                    // wait until block confirmation
-                    System.out.println("Sleep 1 second.");
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            } else if (icxBalance.equals(BigInteger.valueOf(value).multiply(BigDecimal.TEN.pow(18).toBigInteger()))) {
-                break;
-            } else {
-                throw new IOException("ICX balance mismatch!");
-            }
-        }
+        System.out.println(header + ", txHash " + (++txCount) + ": " + txHash);
     }
 
     private static void ensureTokenBalance(TokenScore tokenScore, KeyWallet wallet, long value) throws IOException {
@@ -179,21 +68,39 @@ public class SampleTokenTest {
         }
     }
 
-    public static void main(String[] args) throws IOException {
-        final String URL = "http://localhost:9000/api/v3";
-        IconService iconService = new IconService(new HttpProvider(URL));
-        SampleTokenTest tokenTest = new SampleTokenTest(iconService);
+    private static void ensureFundTransfer(TransactionResult result, Address scoreAddress,
+                                           Address backer, BigInteger amount) throws IOException {
+        List<EventLog> eventLogs = result.getEventLogs();
+        for (EventLog event : eventLogs) {
+            if (event.getScoreAddress().equals(scoreAddress.toString())) {
+                String funcSig = event.getIndexed().get(0).asString();
+                System.out.println("function sig: " + funcSig);
+                if ("FundTransfer(Address,int,bool)".equals(funcSig)) {
+                    Address _backer = event.getIndexed().get(1).asAddress();
+                    BigInteger _amount = event.getIndexed().get(2).asInteger();
+                    Boolean isContribution = event.getIndexed().get(3).asBoolean();
+                    if (!backer.equals(_backer) || !amount.equals(_amount) || isContribution) {
+                        throw new IOException("ensureFundTransfer failed.");
+                    }
+                    return;
+                }
+            }
+        }
+    }
 
-        KeyWallet genesisWallet = readWalletFromFile("/ws/tests/keystore_test1.json");
-        KeyWallet ownerWallet = createAndStoreWallet();
-        KeyWallet aliceWallet = createAndStoreWallet();
-        KeyWallet bobWallet = createAndStoreWallet();
+    public static void main(String[] args) throws IOException {
+        IconService iconService = new IconService(new HttpProvider(Constants.ENDPOINT_URL_LOCAL));
+
+        KeyWallet godWallet = Utils.readWalletFromFile("/ws/tests/keystore_test1.json", "test1_Account");
+        KeyWallet ownerWallet = Utils.createAndStoreWallet();
+        KeyWallet aliceWallet = Utils.createAndStoreWallet();
+        KeyWallet bobWallet = Utils.createAndStoreWallet();
         System.out.println("Address of owner: " + ownerWallet.getAddress());
 
         // transfer initial icx to owner address
-        Bytes txHash = tokenTest.transferIcx(genesisWallet, ownerWallet.getAddress(), "100");
+        Bytes txHash = Utils.transferIcx(iconService, godWallet, ownerWallet.getAddress(), "100");
         printTransactionHash("ICX transfer", txHash);
-        ensureIcxBalance(iconService, ownerWallet, 100);
+        Utils.ensureIcxBalance(iconService, ownerWallet.getAddress(), 0, 100);
 
         // deploy sample token
         String initialSupply = "1000";
@@ -201,11 +108,11 @@ public class SampleTokenTest {
                 .put("_initialSupply", new RpcValue(new BigInteger(initialSupply)))
                 .put("_decimals", new RpcValue(new BigInteger("18")))
                 .build();
-        txHash = tokenTest.deployScore(ownerWallet, "/ws/tests/sampleToken.zip", params);
+        txHash = Utils.deployScore(iconService, ownerWallet, TokenZipfile, params);
         printTransactionHash("SampleToken deploy", txHash);
 
         // get the address of token score
-        TransactionResult result = tokenTest.getTransactionResult(txHash);
+        TransactionResult result = Utils.getTransactionResult(iconService, txHash);
         if (!STATUS_SUCCESS.equals(result.getStatus())) {
             throw new IOException("Failed to deploy.");
         }
@@ -223,11 +130,11 @@ public class SampleTokenTest {
                 .put("_tokenScore", new RpcValue(tokenScoreAddress))
                 .put("_durationInBlocks", new RpcValue(new BigInteger("10")))
                 .build();
-        txHash = tokenTest.deployScore(ownerWallet, "/ws/tests/crowdSale.zip", params);
+        txHash = Utils.deployScore(iconService, ownerWallet, CrowdSaleZipfile, params);
         printTransactionHash("CrowdSale deploy", txHash);
 
         // get the address of crowd sale score
-        result = tokenTest.getTransactionResult(txHash);
+        result = Utils.getTransactionResult(iconService, txHash);
         if (!STATUS_SUCCESS.equals(result.getStatus())) {
             throw new IOException("Failed to deploy.");
         }
@@ -238,27 +145,27 @@ public class SampleTokenTest {
         CrowdSaleScore crowdSaleScore = new CrowdSaleScore(iconService, crowdSaleScoreAddress);
 
         // send 50 icx to Alice
-        txHash = tokenTest.transferIcx(genesisWallet, aliceWallet.getAddress(), "50");
+        txHash = Utils.transferIcx(iconService, godWallet, aliceWallet.getAddress(), "50");
         printTransactionHash("ICX transfer", txHash);
 
         // send 100 icx to Bob
-        txHash = tokenTest.transferIcx(genesisWallet, bobWallet.getAddress(), "100");
+        txHash = Utils.transferIcx(iconService, godWallet, bobWallet.getAddress(), "100");
         printTransactionHash("ICX transfer", txHash);
 
         // check icx balances of Alice and Bob
-        ensureIcxBalance(iconService, aliceWallet, 50);
-        ensureIcxBalance(iconService, bobWallet, 100);
+        Utils.ensureIcxBalance(iconService, aliceWallet.getAddress(), 0, 50);
+        Utils.ensureIcxBalance(iconService, bobWallet.getAddress(), 0, 100);
 
         // transfer all tokens to crowd sale score
         txHash = tokenScore.transfer(ownerWallet, crowdSaleScoreAddress, initialSupply);
         printTransactionHash("TOKEN transfer", txHash);
 
         // Alice: send 40 icx to crowd sale
-        txHash = tokenTest.transferIcx(aliceWallet, crowdSaleScoreAddress, "40");
+        txHash = Utils.transferIcx(iconService, aliceWallet, crowdSaleScoreAddress, "40");
         printTransactionHash("ICX transfer", txHash);
 
         // Bob: send 60 icx to crowd sale
-        txHash = tokenTest.transferIcx(bobWallet, crowdSaleScoreAddress, "60");
+        txHash = Utils.transferIcx(iconService, bobWallet, crowdSaleScoreAddress, "60");
         printTransactionHash("ICX transfer", txHash);
 
         // check token balances of Alice and Bob for reward
@@ -270,7 +177,7 @@ public class SampleTokenTest {
         while (true) {
             txHash = crowdSaleScore.checkGoalReached(ownerWallet);
             printTransactionHash("checkGoalReached", txHash);
-            result = tokenTest.getTransactionResult(txHash);
+            result = Utils.getTransactionResult(iconService, txHash);
             List<EventLog> eventLogs = result.getEventLogs();
             for (EventLog event : eventLogs) {
                 if (event.getScoreAddress().equals(crowdSaleScoreAddress.toString())) {
@@ -294,21 +201,14 @@ public class SampleTokenTest {
         // do safe withdrawal
         txHash = crowdSaleScore.safeWithdrawal(ownerWallet);
         printTransactionHash("safeWithdrawal", txHash);
-        result = tokenTest.getTransactionResult(txHash);
-        List<EventLog> eventLogs = result.getEventLogs();
-        exitLoop = false;
-        for (EventLog event : eventLogs) {
-            if (event.getScoreAddress().equals(crowdSaleScoreAddress.toString())) {
-                String funcSig = event.getIndexed().get(0).asString();
-                System.out.println("function sig: " + funcSig);
-                exitLoop = true;
-            }
+        result = Utils.getTransactionResult(iconService, txHash);
+        if (!STATUS_SUCCESS.equals(result.getStatus())) {
+            throw new IOException("Failed to execute safeWithdrawal.");
         }
-        if (!exitLoop) {
-            throw new IOException("EventLog must exist!");
-        }
+        BigInteger amount = IconAmount.of("100", IconAmount.Unit.ICX).toLoop();
+        ensureFundTransfer(result, crowdSaleScoreAddress, ownerWallet.getAddress(), amount);
 
         // check the final icx balance of owner
-        ensureIcxBalance(iconService, ownerWallet, 200);
+        Utils.ensureIcxBalance(iconService, ownerWallet.getAddress(), 100, 200);
     }
 }
