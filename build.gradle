@@ -18,7 +18,8 @@ repositories {
 }
 
 // Define the main class for the application
-mainClassName = 'foundation.icon.tests.SampleTokenTest'
+//mainClassName = 'foundation.icon.tests.SampleTokenTest'
+mainClassName = 'foundation.icon.tests.MultiSigWalletTest'
 
 dependencies {
     implementation "com.squareup.okhttp3:okhttp:3.11.0"
