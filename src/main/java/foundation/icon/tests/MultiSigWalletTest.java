@@ -29,7 +29,6 @@ import foundation.icon.icx.transport.jsonrpc.RpcValue;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.util.List;
 
 public class MultiSigWalletTest {
     private static final String WalletZipfile = "/ws/tests/multiSigWallet.zip";
@@ -45,33 +44,21 @@ public class MultiSigWalletTest {
     }
 
     private static BigInteger getTransactionId(TransactionResult result, Address scoreAddress) {
-        List<EventLog> eventLogs = result.getEventLogs();
-        for (EventLog event : eventLogs) {
-            if (event.getScoreAddress().equals(scoreAddress.toString())) {
-                String funcSig = event.getIndexed().get(0).asString();
-                System.out.println("function sig: " + funcSig);
-                if ("Submission(int)".equals(funcSig)) {
-                    return event.getIndexed().get(1).asInteger();
-                }
-            }
+        EventLog event = Utils.findEventLogWithFuncSig(result, scoreAddress, "Submission(int)");
+        if (event != null) {
+            return event.getIndexed().get(1).asInteger();
         }
         return null;
     }
 
     private static void ensureConfirmation(TransactionResult result, Address scoreAddress,
                                            Address sender, BigInteger txId) throws IOException {
-        List<EventLog> eventLogs = result.getEventLogs();
-        for (EventLog event : eventLogs) {
-            if (event.getScoreAddress().equals(scoreAddress.toString())) {
-                String funcSig = event.getIndexed().get(0).asString();
-                System.out.println("function sig: " + funcSig);
-                if ("Confirmation(Address,int)".equals(funcSig)) {
-                    Address _sender = event.getIndexed().get(1).asAddress();
-                    BigInteger _txId = event.getIndexed().get(2).asInteger();
-                    if (sender.equals(_sender) && txId.equals(_txId)) {
-                        return; // ensured
-                    }
-                }
+        EventLog event = Utils.findEventLogWithFuncSig(result, scoreAddress, "Confirmation(Address,int)");
+        if (event != null) {
+            Address _sender = event.getIndexed().get(1).asAddress();
+            BigInteger _txId = event.getIndexed().get(2).asInteger();
+            if (sender.equals(_sender) && txId.equals(_txId)) {
+                return; // ensured
             }
         }
         throw new IOException("Failed to get Confirmation.");
@@ -79,17 +66,11 @@ public class MultiSigWalletTest {
 
     private static void ensureExecution(TransactionResult result, Address scoreAddress,
                                         BigInteger txId) throws IOException {
-        List<EventLog> eventLogs = result.getEventLogs();
-        for (EventLog event : eventLogs) {
-            if (event.getScoreAddress().equals(scoreAddress.toString())) {
-                String funcSig = event.getIndexed().get(0).asString();
-                System.out.println("function sig: " + funcSig);
-                if ("Execution(int)".equals(funcSig)) {
-                    BigInteger _txId = event.getIndexed().get(1).asInteger();
-                    if (txId.equals(_txId)) {
-                        return; // ensured
-                    }
-                }
+        EventLog event = Utils.findEventLogWithFuncSig(result, scoreAddress, "Execution(int)");
+        if (event != null) {
+            BigInteger _txId = event.getIndexed().get(1).asInteger();
+            if (txId.equals(_txId)) {
+                return; // ensured
             }
         }
         throw new IOException("Failed to get Execution.");

@@ -22,6 +22,7 @@ import foundation.icon.icx.data.Address;
 import foundation.icon.icx.data.Bytes;
 import foundation.icon.icx.data.IconAmount;
 import foundation.icon.icx.data.TransactionResult;
+import foundation.icon.icx.data.TransactionResult.EventLog;
 import foundation.icon.icx.transport.jsonrpc.RpcError;
 import foundation.icon.icx.transport.jsonrpc.RpcObject;
 
@@ -35,6 +36,7 @@ import java.nio.file.Paths;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.util.List;
 
 class Utils {
     static BigInteger getMicroTime() {
@@ -142,5 +144,19 @@ class Utils {
             }
         }
         return result;
+    }
+
+    static EventLog findEventLogWithFuncSig(TransactionResult result, Address scoreAddress, String funcSig) {
+        List<EventLog> eventLogs = result.getEventLogs();
+        for (EventLog event : eventLogs) {
+            if (event.getScoreAddress().equals(scoreAddress.toString())) {
+                String signature = event.getIndexed().get(0).asString();
+                System.out.println("function sig: " + signature);
+                if (funcSig.equals(signature)) {
+                    return event;
+                }
+            }
+        }
+        return null;
     }
 }

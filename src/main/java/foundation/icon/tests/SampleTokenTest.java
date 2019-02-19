@@ -31,7 +31,6 @@ import foundation.icon.icx.transport.jsonrpc.RpcValue;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.List;
 
 public class SampleTokenTest {
     private static final String TokenZipfile = "/ws/tests/sampleToken.zip";
@@ -70,22 +69,16 @@ public class SampleTokenTest {
 
     private static void ensureFundTransfer(TransactionResult result, Address scoreAddress,
                                            Address backer, BigInteger amount) throws IOException {
-        List<EventLog> eventLogs = result.getEventLogs();
-        for (EventLog event : eventLogs) {
-            if (event.getScoreAddress().equals(scoreAddress.toString())) {
-                String funcSig = event.getIndexed().get(0).asString();
-                System.out.println("function sig: " + funcSig);
-                if ("FundTransfer(Address,int,bool)".equals(funcSig)) {
-                    Address _backer = event.getIndexed().get(1).asAddress();
-                    BigInteger _amount = event.getIndexed().get(2).asInteger();
-                    Boolean isContribution = event.getIndexed().get(3).asBoolean();
-                    if (!backer.equals(_backer) || !amount.equals(_amount) || isContribution) {
-                        throw new IOException("ensureFundTransfer failed.");
-                    }
-                    return;
-                }
+        EventLog event = Utils.findEventLogWithFuncSig(result, scoreAddress, "FundTransfer(Address,int,bool)");
+        if (event != null) {
+            Address _backer = event.getIndexed().get(1).asAddress();
+            BigInteger _amount = event.getIndexed().get(2).asInteger();
+            Boolean isContribution = event.getIndexed().get(3).asBoolean();
+            if (backer.equals(_backer) && amount.equals(_amount) && !isContribution) {
+                return; // ensured
             }
         }
+        throw new IOException("ensureFundTransfer failed.");
     }
 
     public static void main(String[] args) throws IOException {
@@ -173,28 +166,22 @@ public class SampleTokenTest {
         ensureTokenBalance(tokenScore, bobWallet, 60);
 
         // check if goal reached
-        boolean exitLoop = false;
         while (true) {
             txHash = crowdSaleScore.checkGoalReached(ownerWallet);
             printTransactionHash("checkGoalReached", txHash);
             result = Utils.getTransactionResult(iconService, txHash);
-            List<EventLog> eventLogs = result.getEventLogs();
-            for (EventLog event : eventLogs) {
-                if (event.getScoreAddress().equals(crowdSaleScoreAddress.toString())) {
-                    String funcSig = event.getIndexed().get(0).asString();
-                    System.out.println("function sig: " + funcSig);
-                    exitLoop = true;
-                }
+            if (!STATUS_SUCCESS.equals(result.getStatus())) {
+                throw new IOException("Failed to execute checkGoalReached.");
             }
-            if (exitLoop) {
+            EventLog event = Utils.findEventLogWithFuncSig(result, crowdSaleScoreAddress, "GoalReached(Address,int)");
+            if (event != null) {
                 break;
-            } else {
-                try {
-                    System.out.println("Sleep 1 second.");
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+            }
+            try {
+                System.out.println("Sleep 1 second.");
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
 
