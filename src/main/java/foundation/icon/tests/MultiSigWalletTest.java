@@ -33,6 +33,7 @@ import java.util.List;
 
 public class MultiSigWalletTest {
     private static final String WalletZipfile = "/ws/tests/multiSigWallet.zip";
+    private static final String HelloZipfile = "/ws/tests/helloScore.zip";
     private static final BigInteger STATUS_SUCCESS = BigInteger.ONE;
     private static int txCount = 0;
 
@@ -67,13 +68,13 @@ public class MultiSigWalletTest {
                 if ("Confirmation(Address,int)".equals(funcSig)) {
                     Address _sender = event.getIndexed().get(1).asAddress();
                     BigInteger _txId = event.getIndexed().get(2).asInteger();
-                    if (!sender.equals(_sender) || !txId.equals(_txId)) {
-                        throw new IOException("Failed to get Confirmation.");
+                    if (sender.equals(_sender) && txId.equals(_txId)) {
+                        return; // ensured
                     }
-                    return;
                 }
             }
         }
+        throw new IOException("Failed to get Confirmation.");
     }
 
     private static void ensureExecution(TransactionResult result, Address scoreAddress,
@@ -85,13 +86,13 @@ public class MultiSigWalletTest {
                 System.out.println("function sig: " + funcSig);
                 if ("Execution(int)".equals(funcSig)) {
                     BigInteger _txId = event.getIndexed().get(1).asInteger();
-                    if (!txId.equals(_txId)) {
-                        throw new IOException("Failed to get Execution.");
+                    if (txId.equals(_txId)) {
+                        return; // ensured
                     }
-                    return;
                 }
             }
         }
+        throw new IOException("Failed to get Execution.");
     }
 
     public static void main(String[] args) throws IOException {
@@ -132,7 +133,7 @@ public class MultiSigWalletTest {
         printTransactionHash("ICX transfer to multiSigWallet", txHash);
         Utils.ensureIcxBalance(iconService, multiSigWalletAddress, 0, 3);
 
-        // send 2 icx to Bob
+        // *** Send 2 icx to Bob (EOA)
         // 1. tx is initiated by ownerWallet first
         BigInteger two_icx = IconAmount.of("2", IconAmount.Unit.ICX).toLoop();
         params = new RpcObject.Builder()
@@ -166,5 +167,53 @@ public class MultiSigWalletTest {
         // check icx balances
         Utils.ensureIcxBalance(iconService, multiSigWalletAddress, 3, 1);
         Utils.ensureIcxBalance(iconService, bobWallet.getAddress(), 0, 2);
+
+        // *** Send 1 icx to Contract
+        // deploy sample score to accept icx
+        params = new RpcObject.Builder().build();
+        txHash = Utils.deployScore(iconService, ownerWallet, HelloZipfile, params);
+        printTransactionHash("HelloScore deploy", txHash);
+
+        // get the address of hello score
+        result = Utils.getTransactionResult(iconService, txHash);
+        if (!STATUS_SUCCESS.equals(result.getStatus())) {
+            throw new IOException("Failed to deploy hello score.");
+        }
+        Address helloScoreAddress = new Address(result.getScoreAddress());
+        System.out.println("HelloScore address: " + helloScoreAddress);
+
+        // 3. tx is initiated by ownerWallet first
+        BigInteger one_icx = IconAmount.of("1", IconAmount.Unit.ICX).toLoop();
+        params = new RpcObject.Builder()
+                .put("_destination", new RpcValue(helloScoreAddress))
+                .put("_value", new RpcValue(one_icx))
+                .put("_description", new RpcValue("send 1 icx to hello"))
+                .build();
+        txHash = multiSigWalletScore.submitTransaction(ownerWallet, params);
+        printTransactionHash("#3 submitTransaction", txHash);
+
+        result = Utils.getTransactionResult(iconService, txHash);
+        if (!STATUS_SUCCESS.equals(result.getStatus())) {
+            throw new IOException("Failed to execute submitTransaction.");
+        }
+        txId = getTransactionId(result, multiSigWalletAddress);
+        if (txId == null) {
+            throw new IOException("Failed to get transactionId.");
+        }
+
+        // 4. Bob confirms the tx to make the tx executed
+        txHash = multiSigWalletScore.confirmTransaction(bobWallet, txId);
+        printTransactionHash("#4 confirmTransaction", txHash);
+
+        result = Utils.getTransactionResult(iconService, txHash);
+        if (!STATUS_SUCCESS.equals(result.getStatus())) {
+            throw new IOException("Failed to execute confirmTransaction.");
+        }
+        ensureConfirmation(result, multiSigWalletAddress, bobWallet.getAddress(), txId);
+        ensureExecution(result, multiSigWalletAddress, txId);
+
+        // check icx balances
+        Utils.ensureIcxBalance(iconService, multiSigWalletAddress, 1, 0);
+        Utils.ensureIcxBalance(iconService, helloScoreAddress, 0, 1);
     }
 }
