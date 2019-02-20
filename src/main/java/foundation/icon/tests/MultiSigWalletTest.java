@@ -20,7 +20,6 @@ import foundation.icon.icx.IconService;
 import foundation.icon.icx.KeyWallet;
 import foundation.icon.icx.data.Address;
 import foundation.icon.icx.data.Bytes;
-import foundation.icon.icx.data.IconAmount;
 import foundation.icon.icx.data.TransactionResult;
 import foundation.icon.icx.data.TransactionResult.EventLog;
 import foundation.icon.icx.transport.http.HttpProvider;
@@ -43,12 +42,12 @@ public class MultiSigWalletTest {
         System.out.println(header + ", txHash " + (++txCount) + ": " + txHash);
     }
 
-    private static BigInteger getTransactionId(TransactionResult result, Address scoreAddress) {
+    private static BigInteger getTransactionId(TransactionResult result, Address scoreAddress) throws IOException {
         EventLog event = Utils.findEventLogWithFuncSig(result, scoreAddress, "Submission(int)");
         if (event != null) {
             return event.getIndexed().get(1).asInteger();
         }
-        return null;
+        throw new IOException("Failed to get transactionId.");
     }
 
     private static void ensureConfirmation(TransactionResult result, Address scoreAddress,
@@ -74,6 +73,42 @@ public class MultiSigWalletTest {
             }
         }
         throw new IOException("Failed to get Execution.");
+    }
+
+    private static void ensureWalletOwnerAddition(TransactionResult result, Address scoreAddress,
+                                                  Address address) throws IOException {
+        EventLog event = Utils.findEventLogWithFuncSig(result, scoreAddress, "WalletOwnerAddition(Address)");
+        if (event != null) {
+            Address _address = event.getIndexed().get(1).asAddress();
+            if (address.equals(_address)) {
+                return; // ensured
+            }
+        }
+        throw new IOException("Failed to get WalletOwnerAddition.");
+    }
+
+    private static void ensureWalletOwnerRemoval(TransactionResult result, Address scoreAddress,
+                                                  Address address) throws IOException {
+        EventLog event = Utils.findEventLogWithFuncSig(result, scoreAddress, "WalletOwnerRemoval(Address)");
+        if (event != null) {
+            Address _address = event.getIndexed().get(1).asAddress();
+            if (address.equals(_address)) {
+                return; // ensured
+            }
+        }
+        throw new IOException("Failed to get WalletOwnerRemoval.");
+    }
+
+    private static void ensureRequirementChange(TransactionResult result, Address scoreAddress,
+                                                Integer required) throws IOException {
+        EventLog event = Utils.findEventLogWithFuncSig(result, scoreAddress, "RequirementChange(int)");
+        if (event != null) {
+            BigInteger _required = event.getData().get(0).asInteger();
+            if (required.equals(_required.intValue())) {
+                return; // ensured
+            }
+        }
+        throw new IOException("Failed to get RequirementChange.");
     }
 
     public static void main(String[] args) throws IOException {
@@ -116,32 +151,16 @@ public class MultiSigWalletTest {
 
         // *** Send 2 icx to Bob (EOA)
         // 1. tx is initiated by ownerWallet first
-        BigInteger two_icx = IconAmount.of("2", IconAmount.Unit.ICX).toLoop();
-        params = new RpcObject.Builder()
-                .put("_destination", new RpcValue(bobWallet.getAddress()))
-                .put("_value", new RpcValue(two_icx))
-                .put("_description", new RpcValue("send 2 icx to Bob"))
-                .build();
-        txHash = multiSigWalletScore.submitTransaction(ownerWallet, params);
+        txHash = multiSigWalletScore.submitIcxTransaction(ownerWallet, bobWallet.getAddress(), 2, "send 2 icx to Bob");
         printTransactionHash("#1 submitTransaction", txHash);
-
         result = Utils.getTransactionResult(iconService, txHash);
-        if (!STATUS_SUCCESS.equals(result.getStatus())) {
-            throw new IOException("Failed to execute submitTransaction.");
-        }
         BigInteger txId = getTransactionId(result, multiSigWalletAddress);
-        if (txId == null) {
-            throw new IOException("Failed to get transactionId.");
-        }
 
         // 2. Alice confirms the tx to make the tx executed
         txHash = multiSigWalletScore.confirmTransaction(aliceWallet, txId);
         printTransactionHash("#2 confirmTransaction", txHash);
-
         result = Utils.getTransactionResult(iconService, txHash);
-        if (!STATUS_SUCCESS.equals(result.getStatus())) {
-            throw new IOException("Failed to execute confirmTransaction.");
-        }
+
         ensureConfirmation(result, multiSigWalletAddress, aliceWallet.getAddress(), txId);
         ensureExecution(result, multiSigWalletAddress, txId);
 
@@ -164,37 +183,73 @@ public class MultiSigWalletTest {
         System.out.println("HelloScore address: " + helloScoreAddress);
 
         // 3. tx is initiated by ownerWallet first
-        BigInteger one_icx = IconAmount.of("1", IconAmount.Unit.ICX).toLoop();
-        params = new RpcObject.Builder()
-                .put("_destination", new RpcValue(helloScoreAddress))
-                .put("_value", new RpcValue(one_icx))
-                .put("_description", new RpcValue("send 1 icx to hello"))
-                .build();
-        txHash = multiSigWalletScore.submitTransaction(ownerWallet, params);
+        txHash = multiSigWalletScore.submitIcxTransaction(ownerWallet, helloScoreAddress, 1, "send 1 icx to hello");
         printTransactionHash("#3 submitTransaction", txHash);
-
         result = Utils.getTransactionResult(iconService, txHash);
-        if (!STATUS_SUCCESS.equals(result.getStatus())) {
-            throw new IOException("Failed to execute submitTransaction.");
-        }
         txId = getTransactionId(result, multiSigWalletAddress);
-        if (txId == null) {
-            throw new IOException("Failed to get transactionId.");
-        }
 
         // 4. Bob confirms the tx to make the tx executed
         txHash = multiSigWalletScore.confirmTransaction(bobWallet, txId);
         printTransactionHash("#4 confirmTransaction", txHash);
-
         result = Utils.getTransactionResult(iconService, txHash);
-        if (!STATUS_SUCCESS.equals(result.getStatus())) {
-            throw new IOException("Failed to execute confirmTransaction.");
-        }
+
         ensureConfirmation(result, multiSigWalletAddress, bobWallet.getAddress(), txId);
         ensureExecution(result, multiSigWalletAddress, txId);
 
         // check icx balances
         Utils.ensureIcxBalance(iconService, multiSigWalletAddress, 1, 0);
         Utils.ensureIcxBalance(iconService, helloScoreAddress, 0, 1);
+
+        // *** Add new wallet owner (charlie)
+        KeyWallet charlieWallet = Utils.createAndStoreWallet();
+        // 5. tx is initiated by ownerWallet first
+        txHash = multiSigWalletScore.addWalletOwner(ownerWallet, charlieWallet.getAddress(), "add new wallet owner");
+        printTransactionHash("#5 addWalletOwner", txHash);
+        result = Utils.getTransactionResult(iconService, txHash);
+        txId = getTransactionId(result, multiSigWalletAddress);
+
+        // 6. Alice confirms the tx to make the tx executed
+        txHash = multiSigWalletScore.confirmTransaction(aliceWallet, txId);
+        printTransactionHash("#6 confirmTransaction", txHash);
+        result = Utils.getTransactionResult(iconService, txHash);
+
+        ensureConfirmation(result, multiSigWalletAddress, aliceWallet.getAddress(), txId);
+        ensureWalletOwnerAddition(result, multiSigWalletAddress, charlieWallet.getAddress());
+        ensureExecution(result, multiSigWalletAddress, txId);
+
+        // *** Replace wallet owner (charlie -> david)
+        KeyWallet davidWallet = Utils.createAndStoreWallet();
+        // 7. tx is initiated by ownerWallet first
+        txHash = multiSigWalletScore.replaceWalletOwner(ownerWallet, charlieWallet.getAddress(),
+                                                        davidWallet.getAddress(), "replace wallet owner");
+        printTransactionHash("#7 replaceWalletOwner", txHash);
+        result = Utils.getTransactionResult(iconService, txHash);
+        txId = getTransactionId(result, multiSigWalletAddress);
+
+        // 8. Alice confirms the tx to make the tx executed
+        txHash = multiSigWalletScore.confirmTransaction(aliceWallet, txId);
+        printTransactionHash("#8 confirmTransaction", txHash);
+        result = Utils.getTransactionResult(iconService, txHash);
+
+        ensureConfirmation(result, multiSigWalletAddress, aliceWallet.getAddress(), txId);
+        ensureWalletOwnerRemoval(result, multiSigWalletAddress, charlieWallet.getAddress());
+        ensureWalletOwnerAddition(result, multiSigWalletAddress, davidWallet.getAddress());
+        ensureExecution(result, multiSigWalletAddress, txId);
+
+        // *** Change requirement
+        // 9. tx is initiated by ownerWallet first
+        txHash = multiSigWalletScore.changeRequirement(ownerWallet, 3, "change requirement to 3");
+        printTransactionHash("#9 changeRequirement", txHash);
+        result = Utils.getTransactionResult(iconService, txHash);
+        txId = getTransactionId(result, multiSigWalletAddress);
+
+        // 10. Alice confirms the tx to make the tx executed
+        txHash = multiSigWalletScore.confirmTransaction(aliceWallet, txId);
+        printTransactionHash("#10 confirmTransaction", txHash);
+        result = Utils.getTransactionResult(iconService, txHash);
+
+        ensureConfirmation(result, multiSigWalletAddress, aliceWallet.getAddress(), txId);
+        ensureRequirementChange(result, multiSigWalletAddress, 3);
+        ensureExecution(result, multiSigWalletAddress, txId);
     }
 }

@@ -19,6 +19,8 @@ package foundation.icon.tests;
 import foundation.icon.icx.*;
 import foundation.icon.icx.data.Address;
 import foundation.icon.icx.data.Bytes;
+import foundation.icon.icx.data.IconAmount;
+import foundation.icon.icx.data.TransactionResult;
 import foundation.icon.icx.transport.jsonrpc.RpcObject;
 import foundation.icon.icx.transport.jsonrpc.RpcValue;
 
@@ -26,6 +28,8 @@ import java.io.IOException;
 import java.math.BigInteger;
 
 class MultiSigWalletScore {
+    private static final BigInteger STATUS_SUCCESS = BigInteger.ONE;
+
     private final IconService iconService;
     private final Address scoreAddress;
 
@@ -47,10 +51,22 @@ class MultiSigWalletScore {
                 .build();
 
         SignedTransaction signedTransaction = new SignedTransaction(transaction, fromWallet);
-        return iconService.sendTransaction(signedTransaction).execute();
+        Bytes txHash = iconService.sendTransaction(signedTransaction).execute();
+
+        TransactionResult result = Utils.getTransactionResult(iconService, txHash);
+        if (!STATUS_SUCCESS.equals(result.getStatus())) {
+            throw new IOException("Failed to execute sendTransaction.");
+        }
+        return txHash;
     }
 
-    Bytes submitTransaction(Wallet fromWallet, RpcObject params) throws IOException {
+    Bytes submitIcxTransaction(Wallet fromWallet, Address dest, long value, String description) throws IOException {
+        BigInteger icx = IconAmount.of(BigInteger.valueOf(value), IconAmount.Unit.ICX).toLoop();
+        RpcObject params = new RpcObject.Builder()
+                .put("_destination", new RpcValue(dest))
+                .put("_value", new RpcValue(icx))
+                .put("_description", new RpcValue(description))
+                .build();
         return sendTransaction(fromWallet, "submitTransaction", params);
     }
 
@@ -59,5 +75,40 @@ class MultiSigWalletScore {
                 .put("_transactionId", new RpcValue(txId))
                 .build();
         return sendTransaction(fromWallet, "confirmTransaction", params);
+    }
+
+    Bytes addWalletOwner(Wallet fromWallet, Address newOwner, String description) throws IOException {
+        String methodParams = String.format("[{\"name\": \"_walletOwner\", \"type\": \"Address\", \"value\": \"%s\"}]", newOwner);
+        RpcObject params = new RpcObject.Builder()
+                .put("_destination", new RpcValue(scoreAddress))
+                .put("_method", new RpcValue("addWalletOwner"))
+                .put("_params", new RpcValue(methodParams))
+                .put("_description", new RpcValue(description))
+                .build();
+        return sendTransaction(fromWallet, "submitTransaction", params);
+    }
+
+    Bytes replaceWalletOwner(Wallet fromWallet, Address oldOwner, Address newOwner, String description) throws IOException {
+        String methodParams = String.format(
+                "[{\"name\": \"_walletOwner\", \"type\": \"Address\", \"value\": \"%s\"},"
+                + "{\"name\": \"_newWalletOwner\", \"type\": \"Address\", \"value\": \"%s\"}]", oldOwner, newOwner);
+        RpcObject params = new RpcObject.Builder()
+                .put("_destination", new RpcValue(scoreAddress))
+                .put("_method", new RpcValue("replaceWalletOwner"))
+                .put("_params", new RpcValue(methodParams))
+                .put("_description", new RpcValue(description))
+                .build();
+        return sendTransaction(fromWallet, "submitTransaction", params);
+    }
+
+    Bytes changeRequirement(Wallet fromWallet, int required, String description) throws IOException {
+        String methodParams = String.format("[{\"name\": \"_required\", \"type\": \"int\", \"value\": \"%d\"}]", required);
+        RpcObject params = new RpcObject.Builder()
+                .put("_destination", new RpcValue(scoreAddress))
+                .put("_method", new RpcValue("changeRequirement"))
+                .put("_params", new RpcValue(methodParams))
+                .put("_description", new RpcValue(description))
+                .build();
+        return sendTransaction(fromWallet, "submitTransaction", params);
     }
 }
