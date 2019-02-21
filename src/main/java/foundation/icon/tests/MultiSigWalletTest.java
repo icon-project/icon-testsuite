@@ -20,6 +20,7 @@ import foundation.icon.icx.IconService;
 import foundation.icon.icx.KeyWallet;
 import foundation.icon.icx.data.Address;
 import foundation.icon.icx.data.Bytes;
+import foundation.icon.icx.data.IconAmount;
 import foundation.icon.icx.data.TransactionResult;
 import foundation.icon.icx.data.TransactionResult.EventLog;
 import foundation.icon.icx.transport.http.HttpProvider;
@@ -61,6 +62,21 @@ public class MultiSigWalletTest {
             }
         }
         throw new IOException("Failed to get Confirmation.");
+    }
+
+    private static void ensureIcxTransfer(TransactionResult result, Address scoreAddress,
+                                          Address from, Address to, long value) throws IOException {
+        EventLog event = Utils.findEventLogWithFuncSig(result, scoreAddress, "ICXTransfer(Address,Address,int)");
+        if (event != null) {
+            BigInteger icxValue = IconAmount.of(BigInteger.valueOf(value), IconAmount.Unit.ICX).toLoop();
+            Address _from = event.getIndexed().get(1).asAddress();
+            Address _to = event.getIndexed().get(2).asAddress();
+            BigInteger _value = event.getIndexed().get(3).asInteger();
+            if (from.equals(_from) && to.equals(_to) && icxValue.equals(_value)) {
+                return; // ensured
+            }
+        }
+        throw new IOException("Failed to get ICXTransfer.");
     }
 
     private static void ensureExecution(TransactionResult result, Address scoreAddress,
@@ -162,6 +178,7 @@ public class MultiSigWalletTest {
         result = Utils.getTransactionResult(iconService, txHash);
 
         ensureConfirmation(result, multiSigWalletAddress, aliceWallet.getAddress(), txId);
+        ensureIcxTransfer(result, multiSigWalletAddress, multiSigWalletAddress, bobWallet.getAddress(), 2);
         ensureExecution(result, multiSigWalletAddress, txId);
 
         // check icx balances
@@ -194,6 +211,7 @@ public class MultiSigWalletTest {
         result = Utils.getTransactionResult(iconService, txHash);
 
         ensureConfirmation(result, multiSigWalletAddress, bobWallet.getAddress(), txId);
+        ensureIcxTransfer(result, multiSigWalletAddress, multiSigWalletAddress, helloScoreAddress, 1);
         ensureExecution(result, multiSigWalletAddress, txId);
 
         // check icx balances
