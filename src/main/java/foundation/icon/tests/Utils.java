@@ -111,7 +111,7 @@ class Utils {
                 .nid(Constants.NETWORK_ID)
                 .from(fromWallet.getAddress())
                 .to(Constants.ZERO_ADDRESS)
-                .stepLimit(new BigInteger("300000000"))
+                .stepLimit(new BigInteger("80000000", 16))
                 .timestamp(getMicroTime())
                 .nonce(new BigInteger("1"))
                 .deploy(Constants.CONTENT_TYPE, content)

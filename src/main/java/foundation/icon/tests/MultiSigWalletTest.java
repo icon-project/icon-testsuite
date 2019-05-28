@@ -138,6 +138,14 @@ public class MultiSigWalletTest {
         System.out.println("Address of Alice: " + aliceWallet.getAddress());
         System.out.println("Address of Bob:   " + bobWallet.getAddress());
 
+        // transfer initial icx to test addresses
+        Bytes txHash = Utils.transferIcx(iconService, godWallet, ownerWallet.getAddress(), "100");
+        printTransactionHash("ICX transfer", txHash);
+        Utils.ensureIcxBalance(iconService, ownerWallet.getAddress(), 0, 100);
+        txHash = Utils.transferIcx(iconService, godWallet, aliceWallet.getAddress(), "10");
+        printTransactionHash("ICX transfer", txHash);
+        Utils.ensureIcxBalance(iconService, aliceWallet.getAddress(), 0, 10);
+
         // deploy MultiSigWallet score
         String walletOwners = ownerWallet.getAddress() + "," +
                               aliceWallet.getAddress() + "," +
@@ -146,7 +154,7 @@ public class MultiSigWalletTest {
                 .put("_walletOwners", new RpcValue(walletOwners))
                 .put("_required", new RpcValue(new BigInteger("2")))
                 .build();
-        Bytes txHash = Utils.deployScore(iconService, ownerWallet, WalletZipfile, params);
+        txHash = Utils.deployScore(iconService, ownerWallet, WalletZipfile, params);
         printTransactionHash("MultiSigWallet SCORE deploy", txHash);
 
         // get the address of MultiSigWallet score
