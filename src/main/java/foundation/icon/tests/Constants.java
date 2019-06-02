@@ -22,6 +22,7 @@ import java.math.BigInteger;
 
 class Constants {
     static final String ENDPOINT_URL_LOCAL = "http://localhost:9000/api/v3";
+    static final String SERVER_URI = "http://localhost:9000";
     static final BigInteger NETWORK_ID = BigInteger.valueOf(3);
     static final Address ZERO_ADDRESS = new Address("cx0000000000000000000000000000000000000000");
     static final String CONTENT_TYPE = "application/zip";

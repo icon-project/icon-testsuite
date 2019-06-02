@@ -68,7 +68,16 @@ class Utils {
         }
     }
 
-    static void ensureIcxBalance(IconService iconService, Address address, long oldVal, long newVal) throws IOException {
+    static BigInteger ensureIcxBalance(IconService iconService, Address address, BigInteger val) throws IOException {
+        BigInteger balance = iconService.getBalance(address).execute();
+        System.out.println("ICX balance of " + address + ": " + balance);
+        if (balance.compareTo(val) != 0) {
+            throw new IOException("Balance changed!");
+        }
+        return balance;
+    }
+
+    static BigInteger ensureIcxBalance(IconService iconService, Address address, long oldVal, long newVal) throws IOException {
         BigInteger oldValInt = BigInteger.valueOf(oldVal).multiply(BigDecimal.TEN.pow(18).toBigInteger());
         BigInteger newValInt = BigInteger.valueOf(newVal).multiply(BigDecimal.TEN.pow(18).toBigInteger());
         while (true) {
@@ -77,13 +86,13 @@ class Utils {
             if (icxBalance.equals(oldValInt)) {
                 try {
                     // wait until block confirmation
-                    System.out.println("Sleep 1 second.");
-                    Thread.sleep(1000);
+                    System.out.println("Sleep 1.5 seconds");
+                    Thread.sleep(1500);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
             } else if (icxBalance.equals(newValInt)) {
-                break;
+                return newValInt;
             } else {
                 throw new IOException("ICX balance mismatch!");
             }
@@ -136,8 +145,8 @@ class Utils {
                 System.out.println("RpcError: code: " + e.getCode() + ", message: " + e.getMessage());
                 try {
                     // wait until block confirmation
-                    System.out.println("Sleep 1 second.");
-                    Thread.sleep(1000);
+                    System.out.println("Sleep 1.5 seconds");
+                    Thread.sleep(1500);
                 } catch (InterruptedException ie) {
                     ie.printStackTrace();
                 }

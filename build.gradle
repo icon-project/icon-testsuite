@@ -11,7 +11,7 @@ plugins {
     id 'application'
 }
 
-sourceCompatibility = 1.8
+sourceCompatibility = JavaVersion.VERSION_1_8
 
 repositories {
     mavenCentral()
@@ -19,11 +19,17 @@ repositories {
 
 // Define the main class for the application
 //mainClassName = 'foundation.icon.tests.SampleTokenTest'
-mainClassName = 'foundation.icon.tests.MultiSigWalletTest'
+//mainClassName = 'foundation.icon.tests.MultiSigWalletTest'
+mainClassName = 'foundation.icon.tests.FeeSharingTest'
 
 dependencies {
+    // for using 0.9.13 library
+    compile files('libs/library-0.9.13.jar')
+    implementation "org.bouncycastle:bcprov-jdk15on:1.60"
+    implementation "com.fasterxml.jackson.core:jackson-databind:2.9.6"
+
+    //implementation 'foundation.icon:icon-sdk:0.9.12'
     implementation "com.squareup.okhttp3:okhttp:3.11.0"
     implementation "com.squareup.okhttp3:logging-interceptor:3.11.0"
-    implementation 'foundation.icon:icon-sdk:0.9.12'
     testImplementation 'junit:junit:4.12'
 }

@@ -7,17 +7,16 @@ import foundation.icon.icx.data.TransactionResult;
 import foundation.icon.icx.transport.jsonrpc.RpcItem;
 import foundation.icon.icx.transport.jsonrpc.RpcObject;
 
-import javax.swing.*;
 import java.io.IOException;
 import java.math.BigInteger;
 
 public class Score {
     private static final BigInteger STATUS_SUCCESS = BigInteger.ONE;
 
-    protected IconService service;
-    protected Address target;
+    private IconService service;
+    private Address target;
 
-    public Score(IconService service, Address target) {
+    Score(IconService service, Address target) {
         this.service = service;
         this.target = target;
     }
@@ -40,13 +39,12 @@ public class Score {
         return new Address(result.getScoreAddress());
     }
 
-    public RpcItem call(Address from, String method, RpcObject params)
+    public RpcItem call(String method, RpcObject params)
             throws IOException {
         if (params==null) {
             params = new RpcObject.Builder().build();
         }
         Call<RpcItem> call = new Call.Builder()
-                .from(from)
                 .to(this.target)
                 .method(method)
                 .params(params)
@@ -54,7 +52,7 @@ public class Score {
         return this.service.call(call).execute();
     }
 
-    public Bytes invoke(Wallet wallet,String method,
+    public Bytes invoke(Wallet wallet, String method,
             RpcObject params, BigInteger value, BigInteger steps)
             throws IOException
     {
@@ -80,7 +78,7 @@ public class Score {
                 .execute();
     }
 
-    public TransactionResult invokeAndWaitResult(Wallet wallet,String method,
+    public TransactionResult invokeAndWaitResult(Wallet wallet, String method,
             RpcObject params, BigInteger value, BigInteger steps)
             throws IOException {
         Bytes txHash = this.invoke(wallet, method, params, value, steps);
