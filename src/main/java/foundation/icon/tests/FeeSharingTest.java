@@ -160,6 +160,8 @@ public class FeeSharingTest {
         if (!STATUS_SUCCESS.equals(result.getStatus())) {
             throw new IOException("Failed to invoke setValue");
         }
+        System.out.println("txHash: " + result.getTxHash());
+        printStepUsedDetails(result.getStepUsedDetails());
         System.out.println("value: " + feeShareAlice.getValue());
         System.out.println("stepUsed: " + result.getStepUsed());
         // check if the balance was NOT changed
@@ -176,6 +178,16 @@ public class FeeSharingTest {
         }
         System.out.println("value: " + feeShareAlice.getValue());
         aliceBalance = ensureIcxBalanceDecreased(iconService, aliceWallet.getAddress(), aliceBalance);
+    }
+
+    private void printStepUsedDetails(RpcItem stepUsedDetails) {
+        RpcObject details = stepUsedDetails.asObject();
+        System.out.println("stepUsedDetails: {");
+        String M1 = "    ";
+        for (String key : details.keySet()) {
+            System.out.printf(M1 + "%s: %s\n", key, details.getItem(key).asInteger());
+        }
+        System.out.println("}");
     }
 
     private void printDepositInfo(Address scoreAddress) throws IOException {
