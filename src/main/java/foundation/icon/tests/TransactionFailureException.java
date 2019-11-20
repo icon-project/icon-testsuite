@@ -2,7 +2,6 @@ package foundation.icon.tests;
 
 import foundation.icon.icx.data.TransactionResult;
 
-import javax.transaction.TransactionRequiredException;
 import java.math.BigInteger;
 
 public class TransactionFailureException extends Exception {

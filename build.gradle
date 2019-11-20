@@ -23,12 +23,7 @@ repositories {
 mainClassName = 'foundation.icon.tests.FeeSharingTest'
 
 dependencies {
-    // for using 0.9.13 library
-    compile files('libs/library-0.9.13.jar')
-    implementation "org.bouncycastle:bcprov-jdk15on:1.60"
-    implementation "com.fasterxml.jackson.core:jackson-databind:2.9.6"
-
-    //implementation 'foundation.icon:icon-sdk:0.9.12'
+    implementation 'foundation.icon:icon-sdk:0.9.14'
     implementation "com.squareup.okhttp3:okhttp:3.11.0"
     implementation "com.squareup.okhttp3:logging-interceptor:3.11.0"
     testImplementation 'junit:junit:4.12'
