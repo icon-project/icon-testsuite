@@ -1,23 +1,47 @@
-package foundation.icon.test;
+/*
+ * Copyright (c) 2019 ICON Foundation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package foundation.icon.test.cases;
 
 import foundation.icon.icx.IconService;
 import foundation.icon.icx.KeyWallet;
 import foundation.icon.icx.data.TransactionResult;
 import foundation.icon.icx.transport.http.HttpProvider;
+import foundation.icon.test.Constants;
+import foundation.icon.test.TransactionFailureException;
+import foundation.icon.test.Utils;
+import foundation.icon.test.score.StepCounterScore;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.math.BigInteger;
 
 public class RevertTest {
-    public static void main(String[] args) throws IOException,
-            TransactionFailureException {
+    @Test
+    public void testAll() throws IOException, TransactionFailureException {
         IconService iconService = new IconService(
                 new HttpProvider(Constants.ENDPOINT_URL_LOCAL));
 
         System.out.println("[#] Prepare wallets");
 
-        KeyWallet godWallet = Utils.readWalletFromFile("./godWallet.json", "god12345");
+        KeyWallet godWallet = Utils.readWalletFromFile("/ws/tests/keystore_test1.json", "test1_Account");
         KeyWallet ownerWallet = Utils.createAndStoreWallet();
+        String ownerBalance = "1000";
+        Utils.transferIcx(iconService, godWallet, ownerWallet.getAddress(), "1000");
+        Utils.ensureIcxBalance(iconService, ownerWallet.getAddress(), 0, Long.parseLong(ownerBalance));
 
         System.out.println("[>] Deploy SCORE1");
         StepCounterScore score1 = StepCounterScore.mustDeploy(iconService,

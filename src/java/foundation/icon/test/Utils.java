@@ -38,13 +38,13 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.util.List;
 
-class Utils {
+public class Utils {
     static BigInteger getMicroTime() {
         long timestamp = System.currentTimeMillis() * 1000L;
         return new BigInteger(Long.toString(timestamp));
     }
 
-    static KeyWallet createAndStoreWallet() throws IOException {
+    public static KeyWallet createAndStoreWallet() throws IOException {
         try {
             KeyWallet wallet = KeyWallet.create();
             KeyWallet.store(wallet, "P@sswOrd", new File("/tmp"));
@@ -58,7 +58,7 @@ class Utils {
         }
     }
 
-    static KeyWallet readWalletFromFile(String path, String password) throws IOException {
+    public static KeyWallet readWalletFromFile(String path, String password) throws IOException {
         try {
             File file = new File(path);
             return KeyWallet.load(password, file);
@@ -77,7 +77,7 @@ class Utils {
         return balance;
     }
 
-    static BigInteger ensureIcxBalance(IconService iconService, Address address, long oldVal, long newVal) throws IOException {
+    public static BigInteger ensureIcxBalance(IconService iconService, Address address, long oldVal, long newVal) throws IOException {
         BigInteger oldValInt = BigInteger.valueOf(oldVal).multiply(BigDecimal.TEN.pow(18).toBigInteger());
         BigInteger newValInt = BigInteger.valueOf(newVal).multiply(BigDecimal.TEN.pow(18).toBigInteger());
         while (true) {
@@ -99,7 +99,7 @@ class Utils {
         }
     }
 
-    static Bytes transferIcx(IconService iconService, Wallet fromWallet, Address to, String value) throws IOException {
+    public static Bytes transferIcx(IconService iconService, Wallet fromWallet, Address to, String value) throws IOException {
         Transaction transaction = TransactionBuilder.newBuilder()
                 .nid(Constants.NETWORK_ID)
                 .from(fromWallet.getAddress())
@@ -114,7 +114,7 @@ class Utils {
         return iconService.sendTransaction(signedTransaction).execute();
     }
 
-    static Bytes deployScore(IconService iconService, Wallet fromWallet, String zipfile, RpcObject params) throws IOException {
+    public static Bytes deployScore(IconService iconService, Wallet fromWallet, String zipfile, RpcObject params) throws IOException {
         byte[] content = readFile(zipfile);
         Transaction transaction = TransactionBuilder.newBuilder()
                 .nid(Constants.NETWORK_ID)
@@ -136,7 +136,7 @@ class Utils {
         return Files.readAllBytes(path);
     }
 
-    static TransactionResult getTransactionResult(IconService iconService, Bytes txHash) throws IOException {
+    public static TransactionResult getTransactionResult(IconService iconService, Bytes txHash) throws IOException {
         TransactionResult result = null;
         while (result == null) {
             try {
