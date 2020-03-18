@@ -14,25 +14,49 @@
  * limitations under the License.
  */
 
-package foundation.icon.tests;
+package foundation.icon.test;
 
 import foundation.icon.icx.*;
 import foundation.icon.icx.data.Address;
 import foundation.icon.icx.data.Bytes;
+import foundation.icon.icx.data.IconAmount;
+import foundation.icon.icx.transport.jsonrpc.RpcItem;
+import foundation.icon.icx.transport.jsonrpc.RpcObject;
+import foundation.icon.icx.transport.jsonrpc.RpcValue;
 
 import java.io.IOException;
 import java.math.BigInteger;
 
-class CrowdSaleScore {
+class TokenScore {
     private final IconService iconService;
     private final Address scoreAddress;
 
-    CrowdSaleScore(IconService iconService, Address scoreAddress) {
+    TokenScore(IconService iconService, Address scoreAddress) {
         this.iconService = iconService;
         this.scoreAddress = scoreAddress;
+
+        //TODO: check if this is really a token SCORE that conforms to IRC2
     }
 
-    private Bytes sendTransaction(Wallet fromWallet, String function) throws IOException {
+    RpcItem balanceOf(Address owner) throws IOException {
+        RpcObject params = new RpcObject.Builder()
+                .put("_owner", new RpcValue(owner))
+                .build();
+        Call<RpcItem> call = new Call.Builder()
+                .from(owner)
+                .to(scoreAddress)
+                .method("balanceOf")
+                .params(params)
+                .build();
+        return iconService.call(call).execute();
+    }
+
+    Bytes transfer(Wallet fromWallet, Address toAddress, String value) throws IOException {
+        RpcObject params = new RpcObject.Builder()
+                .put("_to", new RpcValue(toAddress))
+                .put("_value", new RpcValue(IconAmount.of(value, 18).toLoop()))
+                .build();
+
         Transaction transaction = TransactionBuilder.newBuilder()
                 .nid(Constants.NETWORK_ID)
                 .from(fromWallet.getAddress())
@@ -40,18 +64,11 @@ class CrowdSaleScore {
                 .stepLimit(new BigInteger("2000000"))
                 .timestamp(Utils.getMicroTime())
                 .nonce(new BigInteger("1"))
-                .call(function)
+                .call("transfer")
+                .params(params)
                 .build();
 
         SignedTransaction signedTransaction = new SignedTransaction(transaction, fromWallet);
         return iconService.sendTransaction(signedTransaction).execute();
-    }
-
-    Bytes checkGoalReached(Wallet fromWallet) throws IOException {
-        return sendTransaction(fromWallet, "checkGoalReached");
-    }
-
-    Bytes safeWithdrawal(Wallet fromWallet) throws IOException {
-        return sendTransaction(fromWallet, "safeWithdrawal");
     }
 }

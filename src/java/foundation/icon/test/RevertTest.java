@@ -1,4 +1,4 @@
-package foundation.icon.tests;
+package foundation.icon.test;
 
 import foundation.icon.icx.IconService;
 import foundation.icon.icx.KeyWallet;

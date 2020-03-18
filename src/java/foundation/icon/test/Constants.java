@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package foundation.icon.tests;
+package foundation.icon.test;
 
 import foundation.icon.icx.data.Address;
 
