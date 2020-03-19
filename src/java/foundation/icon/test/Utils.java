@@ -70,6 +70,32 @@ public class Utils {
         }
     }
 
+    public static void ensureIcxBalance(TransactionHandler txHandler, Address address,
+                                        BigInteger oldVal, BigInteger newVal) throws Exception {
+        long limitTime = System.currentTimeMillis() + Constants.DEFAULT_WAITING_TIME;
+        while (true) {
+            BigInteger icxBalance = txHandler.getBalance(address);
+            String msg = "ICX balance of " + address + ": " + icxBalance;
+            if (icxBalance.equals(oldVal)) {
+                if (limitTime < System.currentTimeMillis()) {
+                    throw new ResultTimeoutException();
+                }
+                try {
+                    // wait until block confirmation
+                    LOG.debug(msg + "; Retry in 1 sec.");
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            } else if (icxBalance.equals(newVal)) {
+                LOG.info(msg);
+                break;
+            } else {
+                throw new IOException("ICX balance mismatch!");
+            }
+        }
+    }
+
     public static BigInteger ensureIcxBalance(IconService iconService, Address address, BigInteger val) throws IOException {
         BigInteger balance = iconService.getBalance(address).execute();
         LOG.info("ICX balance of " + address + ": " + balance);
@@ -128,7 +154,7 @@ public class Utils {
                 .stepLimit(new BigInteger("80000000", 16))
                 .timestamp(getMicroTime())
                 .nonce(new BigInteger("1"))
-                .deploy(Constants.CONTENT_TYPE, content)
+                .deploy(Constants.CONTENT_TYPE_PYTHON, content)
                 .params(params)
                 .build();
 

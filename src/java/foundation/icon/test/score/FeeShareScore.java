@@ -23,17 +23,21 @@ import foundation.icon.icx.data.TransactionResult;
 import foundation.icon.icx.transport.jsonrpc.RpcItem;
 import foundation.icon.icx.transport.jsonrpc.RpcObject;
 import foundation.icon.icx.transport.jsonrpc.RpcValue;
+import foundation.icon.test.Constants;
+import foundation.icon.test.Env;
+import foundation.icon.test.ResultTimeoutException;
+import foundation.icon.test.TransactionHandler;
 
 import java.io.IOException;
 import java.math.BigInteger;
 
 public class FeeShareScore extends Score {
-    final static BigInteger Steps = BigInteger.valueOf(3).multiply(BigInteger.TEN.pow(6));
+    private static final BigInteger STEPS = Constants.DEFAULT_STEPS_2;
 
     private final Wallet wallet;
 
-    public FeeShareScore(IconService service, Wallet wallet, Address target) {
-        super(service, target);
+    public FeeShareScore(IconService service, Wallet wallet, Address address) throws IOException {
+        super(new TransactionHandler(service, Env.getDefaultChain()), address);
         this.wallet = wallet;
     }
 
@@ -42,22 +46,22 @@ public class FeeShareScore extends Score {
         return res.asString();
     }
 
-    public TransactionResult addToWhitelist(Address address, int proportion) throws IOException {
+    public TransactionResult addToWhitelist(Address address, int proportion) throws IOException, ResultTimeoutException {
         return invokeAndWaitResult(wallet,
                 "addToWhitelist",
                 (new RpcObject.Builder())
                         .put("address", new RpcValue(address))
                         .put("proportion", new RpcValue(BigInteger.valueOf(proportion)))
                         .build(),
-                null, Steps);
+                null, STEPS);
     }
 
-    public TransactionResult setValue(String value) throws IOException {
+    public TransactionResult setValue(String value) throws IOException, ResultTimeoutException {
         return invokeAndWaitResult(wallet,
                 "setValue",
                 (new RpcObject.Builder())
                         .put("value", new RpcValue(value))
                         .build(),
-                null, Steps);
+                null, STEPS);
     }
 }

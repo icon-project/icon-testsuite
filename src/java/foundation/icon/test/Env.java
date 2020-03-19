@@ -16,6 +16,30 @@
 
 package foundation.icon.test;
 
+import foundation.icon.icx.Wallet;
+
+import java.io.IOException;
+
 public class Env {
     public static final Log LOG = Log.getGlobal();
+    private static final String LOCAL_URI = "http://localhost:9000";
+
+    public static Chain getDefaultChain() throws IOException {
+        Wallet godWallet = Utils.readWalletFromFile("/ws/tests/keystore_test1.json", "test1_Account");
+        return new Chain(3, godWallet);
+    }
+
+    public static class Chain {
+        public final int networkId;
+        public final Wallet godWallet;
+
+        public Chain(int networkId, Wallet godWallet) {
+            this.networkId = networkId;
+            this.godWallet = godWallet;
+        }
+
+        public String getEndpointURL(int v) {
+            return LOCAL_URI + "/api/v" + v + "/";
+        }
+    }
 }

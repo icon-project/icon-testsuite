@@ -17,8 +17,6 @@
 package foundation.icon.test.score;
 
 import foundation.icon.icx.Call;
-import foundation.icon.icx.IconService;
-import foundation.icon.icx.SignedTransaction;
 import foundation.icon.icx.Transaction;
 import foundation.icon.icx.TransactionBuilder;
 import foundation.icon.icx.Wallet;
@@ -28,123 +26,126 @@ import foundation.icon.icx.data.TransactionResult;
 import foundation.icon.icx.transport.jsonrpc.RpcItem;
 import foundation.icon.icx.transport.jsonrpc.RpcObject;
 import foundation.icon.test.Constants;
-import foundation.icon.test.TransactionFailureException;
-import foundation.icon.test.Utils;
-import foundation.icon.test.util.ZipFile;
+import foundation.icon.test.ResultTimeoutException;
+import foundation.icon.test.TransactionHandler;
 
 import java.io.IOException;
 import java.math.BigInteger;
 
 public class Score {
     private static final String SCORE_ROOT = "./test/scores/";
-    private static final BigInteger STATUS_SUCCESS = BigInteger.ONE;
+    private final TransactionHandler txHandler;
+    private final Address address;
 
-    private IconService service;
-    private Address target;
-
-    protected Score(IconService service, Address target) {
-        this.service = service;
-        this.target = target;
+    public Score(TransactionHandler txHandler, Address scoreAddress) {
+        this.txHandler = txHandler;
+        this.address = scoreAddress;
     }
 
-    public static TransactionResult deployAndWaitResult(IconService service, Wallet wallet, String pkgName, RpcObject params)
-            throws IOException
-    {
-        byte[] content = ZipFile.zipContent(SCORE_ROOT + pkgName);
-        Bytes txHash = Utils.deployScore(service, wallet, content, params);
-        return Utils.getTransactionResult(service, txHash);
+    public Score(Score other) {
+        this(other.txHandler, other.address);
     }
 
-    public static Address mustDeploy(IconService service, Wallet wallet, String pkgName,
-                                     RpcObject params)
-        throws IOException, TransactionFailureException
-    {
-        TransactionResult result = deployAndWaitResult(service, wallet, pkgName, params);
-        if (!STATUS_SUCCESS.equals(result.getStatus())) {
-            throw new TransactionFailureException(result.getFailure());
-        }
-        return new Address(result.getScoreAddress());
+    protected static String getFilePath(String pkgName) {
+        return SCORE_ROOT + pkgName;
     }
 
     public RpcItem call(String method, RpcObject params)
             throws IOException {
-        if (params==null) {
+        if (params == null) {
             params = new RpcObject.Builder().build();
         }
         Call<RpcItem> call = new Call.Builder()
-                .to(this.target)
+                .to(getAddress())
                 .method(method)
                 .params(params)
                 .build();
-        return this.service.call(call).execute();
+        return this.txHandler.call(call);
     }
 
-    public Bytes invoke(Wallet wallet, String method,
-            RpcObject params, BigInteger value, BigInteger steps)
-            throws IOException
-    {
+    public Bytes invoke(Wallet wallet, String method, RpcObject params) throws IOException {
+        return invoke(wallet, method, params, BigInteger.ZERO, Constants.DEFAULT_STEPS_2);
+    }
+
+    public Bytes invoke(Wallet wallet, String method, RpcObject params,
+                        long value, long steps) throws IOException {
+        return invoke(wallet, method, params, BigInteger.valueOf(value), BigInteger.valueOf(steps));
+    }
+
+    public Bytes invoke(Wallet wallet, String method, RpcObject params,
+                        BigInteger value, BigInteger steps) throws IOException {
+        return invoke(wallet, method, params, value, steps, null, null);
+    }
+
+    public Bytes invoke(Wallet wallet, String method, RpcObject params, BigInteger value,
+                        BigInteger steps, BigInteger timestamp, BigInteger nonce) throws IOException {
+        Transaction tx = getTransaction(wallet, method, params, value, steps, timestamp, nonce);
+        return this.txHandler.invoke(wallet, tx);
+    }
+
+    private Transaction getTransaction(Wallet wallet, String method, RpcObject params, BigInteger value,
+                                       BigInteger steps, BigInteger timestamp, BigInteger nonce) {
         TransactionBuilder.Builder builder = TransactionBuilder.newBuilder()
-                .nid(Constants.NETWORK_ID)
+                .nid(getNetworkId())
                 .from(wallet.getAddress())
-                .to(this.target)
+                .to(getAddress())
                 .stepLimit(steps);
 
-        if ((value != null) && value.bitLength()!=0) {
-            builder = builder.value(value);
+        if ((value != null) && value.bitLength() != 0) {
+            builder.value(value);
+        }
+        if ((timestamp != null) && timestamp.bitLength() != 0) {
+            builder.timestamp(timestamp);
+        }
+        if (nonce != null) {
+            builder.nonce(nonce);
         }
 
-        Transaction t = null;
-        if (params!=null) {
-            t = builder.call(method).params(params).build();
+        Transaction tx;
+        if (params != null) {
+            tx = builder.call(method).params(params).build();
         } else {
-            t = builder.call(method).build();
+            tx = builder.call(method).build();
         }
+        return tx;
+    }
 
-        return this.service
-                .sendTransaction(new SignedTransaction(t, wallet))
-                .execute();
+    public TransactionResult invokeAndWaitResult(Wallet wallet, String method, RpcObject params)
+            throws ResultTimeoutException, IOException {
+        return invokeAndWaitResult(wallet, method, params, null, Constants.DEFAULT_STEPS_2);
     }
 
     public TransactionResult invokeAndWaitResult(Wallet wallet, String method,
-            RpcObject params, BigInteger value, BigInteger steps)
-            throws IOException {
+                                                 RpcObject params, long value, long steps)
+            throws ResultTimeoutException, IOException {
+        return invokeAndWaitResult(wallet, method, params, BigInteger.valueOf(value), BigInteger.valueOf(steps));
+    }
+
+    public TransactionResult invokeAndWaitResult(Wallet wallet, String method, RpcObject params,
+                                                 BigInteger value, BigInteger steps)
+            throws ResultTimeoutException, IOException {
         Bytes txHash = this.invoke(wallet, method, params, value, steps);
-        return waitResult(txHash);
+        return getResult(txHash);
     }
 
-    public Bytes transfer(Wallet wallet, Address to, BigInteger value, BigInteger steps)
-            throws IOException
-    {
-        Transaction tx = TransactionBuilder.newBuilder()
-                .nid(Constants.NETWORK_ID)
-                .from(wallet.getAddress())
-                .to(this.target)
-                .value(value)
-                .stepLimit(steps)
-                .build();
-        SignedTransaction signed =
-                new SignedTransaction(tx, wallet);
-        return this.service
-                .sendTransaction(signed).execute();
+    public TransactionResult getResult(Bytes txHash) throws ResultTimeoutException, IOException {
+        return getResult(txHash, Constants.DEFAULT_WAITING_TIME);
     }
 
-    public TransactionResult transferAndWaitResult(Wallet wallet, Address to,
-                                             BigInteger value, BigInteger steps
-    ) throws IOException, TransactionFailureException {
-        Bytes txHash = this.transfer(wallet, to, value, steps);
-        return waitResult(txHash);
-    }
-
-    public TransactionResult waitResult(Bytes txHash) throws IOException {
-        return Utils.getTransactionResult(this.service, txHash);
+    public TransactionResult getResult(Bytes txHash, long waiting) throws ResultTimeoutException, IOException {
+        return this.txHandler.getResult(txHash, waiting);
     }
 
     public Address getAddress() {
-        return this.target;
+        return this.address;
+    }
+
+    public BigInteger getNetworkId() {
+        return txHandler.getNetworkId();
     }
 
     @Override
     public String toString() {
-        return "SCORE("+this.target.toString()+")";
+        return "SCORE(" + getAddress().toString() + ")";
     }
 }

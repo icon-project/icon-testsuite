@@ -32,8 +32,8 @@ import foundation.icon.icx.transport.jsonrpc.RpcItem;
 import foundation.icon.icx.transport.jsonrpc.RpcObject;
 import foundation.icon.icx.transport.jsonrpc.RpcValue;
 import foundation.icon.test.Constants;
-import foundation.icon.test.score.FeeShareScore;
 import foundation.icon.test.Utils;
+import foundation.icon.test.score.FeeShareScore;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -140,7 +140,7 @@ public class FeeSharingTest {
     }
 
     @Test
-    public void runTest() throws IOException {
+    public void runTest() throws Exception {
         FeeShareScore feeShareOwner = new FeeShareScore(iconService, ownerWallet, scoreAddress);
         System.out.println("value: " + feeShareOwner.getValue());
 
