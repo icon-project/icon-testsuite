@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package foundation.icon.test;
+package foundation.icon.test.cases;
 
 import foundation.icon.icx.IconService;
 import foundation.icon.icx.KeyWallet;
@@ -27,6 +27,11 @@ import foundation.icon.icx.transport.http.HttpProvider;
 import foundation.icon.icx.transport.jsonrpc.RpcItem;
 import foundation.icon.icx.transport.jsonrpc.RpcObject;
 import foundation.icon.icx.transport.jsonrpc.RpcValue;
+import foundation.icon.test.Constants;
+import foundation.icon.test.score.CrowdSaleScore;
+import foundation.icon.test.score.TokenScore;
+import foundation.icon.test.Utils;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -81,7 +86,8 @@ public class SampleTokenTest {
         throw new IOException("ensureFundTransfer failed.");
     }
 
-    public static void main(String[] args) throws IOException {
+    @Test
+    public void testAll() throws IOException {
         IconService iconService = new IconService(new HttpProvider(Constants.ENDPOINT_URL_LOCAL));
 
         KeyWallet godWallet = Utils.readWalletFromFile("/ws/tests/keystore_test1.json", "test1_Account");

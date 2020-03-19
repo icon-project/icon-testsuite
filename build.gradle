@@ -1,6 +1,5 @@
 plugins {
     id 'java'
-    id 'application'
 }
 
 sourceCompatibility = JavaVersion.VERSION_1_8
@@ -14,11 +13,6 @@ sourceSets {
     main.java.srcDirs = ['src/java']
     test.java.srcDirs = ['test/java']
 }
-
-// Define the main class for the application
-//mainClassName = 'foundation.icon.test.SampleTokenTest'
-//mainClassName = 'foundation.icon.test.MultiSigWalletTest'
-mainClassName = 'foundation.icon.test.FeeSharingTest'
 
 dependencies {
     implementation 'foundation.icon:icon-sdk:0.9.15'

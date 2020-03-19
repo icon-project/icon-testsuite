@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package foundation.icon.test;
+package foundation.icon.test.score;
 
 import foundation.icon.icx.*;
 import foundation.icon.icx.data.Address;
@@ -23,17 +23,19 @@ import foundation.icon.icx.data.IconAmount;
 import foundation.icon.icx.data.TransactionResult;
 import foundation.icon.icx.transport.jsonrpc.RpcObject;
 import foundation.icon.icx.transport.jsonrpc.RpcValue;
+import foundation.icon.test.Constants;
+import foundation.icon.test.Utils;
 
 import java.io.IOException;
 import java.math.BigInteger;
 
-class MultiSigWalletScore {
+public class MultiSigWalletScore {
     private static final BigInteger STATUS_SUCCESS = BigInteger.ONE;
 
     private final IconService iconService;
     private final Address scoreAddress;
 
-    MultiSigWalletScore(IconService iconService, Address scoreAddress) {
+    public MultiSigWalletScore(IconService iconService, Address scoreAddress) {
         this.iconService = iconService;
         this.scoreAddress = scoreAddress;
     }
@@ -60,7 +62,7 @@ class MultiSigWalletScore {
         return txHash;
     }
 
-    Bytes submitIcxTransaction(Wallet fromWallet, Address dest, long value, String description) throws IOException {
+    public Bytes submitIcxTransaction(Wallet fromWallet, Address dest, long value, String description) throws IOException {
         BigInteger icx = IconAmount.of(BigInteger.valueOf(value), IconAmount.Unit.ICX).toLoop();
         RpcObject params = new RpcObject.Builder()
                 .put("_destination", new RpcValue(dest))
@@ -70,14 +72,14 @@ class MultiSigWalletScore {
         return sendTransaction(fromWallet, "submitTransaction", params);
     }
 
-    Bytes confirmTransaction(Wallet fromWallet, BigInteger txId) throws IOException {
+    public Bytes confirmTransaction(Wallet fromWallet, BigInteger txId) throws IOException {
         RpcObject params = new RpcObject.Builder()
                 .put("_transactionId", new RpcValue(txId))
                 .build();
         return sendTransaction(fromWallet, "confirmTransaction", params);
     }
 
-    Bytes addWalletOwner(Wallet fromWallet, Address newOwner, String description) throws IOException {
+    public Bytes addWalletOwner(Wallet fromWallet, Address newOwner, String description) throws IOException {
         String methodParams = String.format("[{\"name\": \"_walletOwner\", \"type\": \"Address\", \"value\": \"%s\"}]", newOwner);
         RpcObject params = new RpcObject.Builder()
                 .put("_destination", new RpcValue(scoreAddress))
@@ -88,7 +90,7 @@ class MultiSigWalletScore {
         return sendTransaction(fromWallet, "submitTransaction", params);
     }
 
-    Bytes replaceWalletOwner(Wallet fromWallet, Address oldOwner, Address newOwner, String description) throws IOException {
+    public Bytes replaceWalletOwner(Wallet fromWallet, Address oldOwner, Address newOwner, String description) throws IOException {
         String methodParams = String.format(
                 "[{\"name\": \"_walletOwner\", \"type\": \"Address\", \"value\": \"%s\"},"
                 + "{\"name\": \"_newWalletOwner\", \"type\": \"Address\", \"value\": \"%s\"}]", oldOwner, newOwner);
@@ -101,7 +103,7 @@ class MultiSigWalletScore {
         return sendTransaction(fromWallet, "submitTransaction", params);
     }
 
-    Bytes changeRequirement(Wallet fromWallet, int required, String description) throws IOException {
+    public Bytes changeRequirement(Wallet fromWallet, int required, String description) throws IOException {
         String methodParams = String.format("[{\"name\": \"_required\", \"type\": \"int\", \"value\": \"%d\"}]", required);
         RpcObject params = new RpcObject.Builder()
                 .put("_destination", new RpcValue(scoreAddress))

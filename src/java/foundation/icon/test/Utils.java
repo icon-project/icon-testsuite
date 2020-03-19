@@ -39,7 +39,7 @@ import java.security.NoSuchProviderException;
 import java.util.List;
 
 public class Utils {
-    static BigInteger getMicroTime() {
+    public static BigInteger getMicroTime() {
         long timestamp = System.currentTimeMillis() * 1000L;
         return new BigInteger(Long.toString(timestamp));
     }
@@ -68,7 +68,7 @@ public class Utils {
         }
     }
 
-    static BigInteger ensureIcxBalance(IconService iconService, Address address, BigInteger val) throws IOException {
+    public static BigInteger ensureIcxBalance(IconService iconService, Address address, BigInteger val) throws IOException {
         BigInteger balance = iconService.getBalance(address).execute();
         System.out.println("ICX balance of " + address + ": " + balance);
         if (balance.compareTo(val) != 0) {
@@ -155,7 +155,7 @@ public class Utils {
         return result;
     }
 
-    static EventLog findEventLogWithFuncSig(TransactionResult result, Address scoreAddress, String funcSig) {
+    public static EventLog findEventLogWithFuncSig(TransactionResult result, Address scoreAddress, String funcSig) {
         List<EventLog> eventLogs = result.getEventLogs();
         for (EventLog event : eventLogs) {
             if (event.getScoreAddress().equals(scoreAddress.toString())) {

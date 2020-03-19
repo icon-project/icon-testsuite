@@ -14,9 +14,14 @@
  * limitations under the License.
  */
 
-package foundation.icon.test;
+package foundation.icon.test.cases;
 
-import foundation.icon.icx.*;
+import foundation.icon.icx.Call;
+import foundation.icon.icx.IconService;
+import foundation.icon.icx.KeyWallet;
+import foundation.icon.icx.SignedTransaction;
+import foundation.icon.icx.Transaction;
+import foundation.icon.icx.TransactionBuilder;
 import foundation.icon.icx.data.Address;
 import foundation.icon.icx.data.Bytes;
 import foundation.icon.icx.data.IconAmount;
@@ -26,6 +31,10 @@ import foundation.icon.icx.transport.jsonrpc.RpcArray;
 import foundation.icon.icx.transport.jsonrpc.RpcItem;
 import foundation.icon.icx.transport.jsonrpc.RpcObject;
 import foundation.icon.icx.transport.jsonrpc.RpcValue;
+import foundation.icon.test.Constants;
+import foundation.icon.test.score.FeeShareScore;
+import foundation.icon.test.Utils;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -239,7 +248,8 @@ public class FeeSharingTest {
         }
     }
 
-    public static void main(String[] args) throws IOException {
+    @Test
+    public void testAll() throws IOException {
         FeeSharingTest test = new FeeSharingTest();
         test.runTest();
     }
