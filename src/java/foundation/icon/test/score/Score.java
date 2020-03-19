@@ -64,7 +64,7 @@ public class Score {
     }
 
     public Bytes invoke(Wallet wallet, String method, RpcObject params) throws IOException {
-        return invoke(wallet, method, params, BigInteger.ZERO, Constants.DEFAULT_STEPS_2);
+        return invoke(wallet, method, params, BigInteger.ZERO, Constants.DEFAULT_STEPS);
     }
 
     public Bytes invoke(Wallet wallet, String method, RpcObject params,
@@ -112,7 +112,7 @@ public class Score {
 
     public TransactionResult invokeAndWaitResult(Wallet wallet, String method, RpcObject params)
             throws ResultTimeoutException, IOException {
-        return invokeAndWaitResult(wallet, method, params, null, Constants.DEFAULT_STEPS_2);
+        return invokeAndWaitResult(wallet, method, params, null, Constants.DEFAULT_STEPS);
     }
 
     public TransactionResult invokeAndWaitResult(Wallet wallet, String method,

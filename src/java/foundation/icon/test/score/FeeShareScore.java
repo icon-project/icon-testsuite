@@ -32,7 +32,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 
 public class FeeShareScore extends Score {
-    private static final BigInteger STEPS = Constants.DEFAULT_STEPS_2;
+    private static final BigInteger STEPS = Constants.DEFAULT_STEPS;
 
     private final Wallet wallet;
 

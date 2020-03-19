@@ -1,0 +1,134 @@
+/*
+ * Copyright 2019 ICON Foundation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package foundation.icon.test.cases;
+
+import foundation.icon.icx.IconService;
+import foundation.icon.icx.KeyWallet;
+import foundation.icon.icx.data.Address;
+import foundation.icon.icx.data.Bytes;
+import foundation.icon.icx.data.TransactionResult;
+import foundation.icon.icx.transport.http.HttpProvider;
+import foundation.icon.test.Constants;
+import foundation.icon.test.Env;
+import foundation.icon.test.ResultTimeoutException;
+import foundation.icon.test.TransactionHandler;
+import foundation.icon.test.Utils;
+import foundation.icon.test.score.CrowdSaleScore;
+import foundation.icon.test.score.SampleTokenScore;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
+import java.math.BigInteger;
+
+import static foundation.icon.test.Env.LOG;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+public class CrowdsaleTest {
+    private static final BigInteger ICX = BigInteger.TEN.pow(18);
+
+    private static TransactionHandler txHandler;
+    private static KeyWallet ownerWallet;
+
+    @BeforeAll
+    static void setup() throws Exception {
+        Env.Chain chain = Env.getDefaultChain();
+        IconService iconService = new IconService(new HttpProvider(chain.getEndpointURL(3)));
+        txHandler = new TransactionHandler(iconService, chain);
+        ownerWallet = KeyWallet.create();
+
+        // transfer initial icx to owner address
+        BigInteger amount = ICX.multiply(BigInteger.valueOf(30));
+        txHandler.transfer(ownerWallet.getAddress(), amount);
+        Utils.ensureIcxBalance(txHandler, ownerWallet.getAddress(), BigInteger.ZERO, amount);
+    }
+
+    private static void transferAndCheckResult(TransactionHandler txHandler, Address to, BigInteger amount)
+            throws IOException, ResultTimeoutException {
+        Bytes txHash = txHandler.transfer(to, amount);
+        assertEquals(Constants.STATUS_SUCCESS, txHandler.getResult(txHash).getStatus());
+    }
+
+    @Test
+    public void deployAndStartCrowdsale() throws Exception {
+        // deploy token SCORE
+        BigInteger decimals = BigInteger.valueOf(18);
+        BigInteger initialSupply = BigInteger.valueOf(1000);
+        SampleTokenScore tokenScore = SampleTokenScore.mustDeploy(txHandler, ownerWallet,
+                decimals, initialSupply);
+
+        // deploy crowdsale SCORE
+        BigInteger fundingGoalInIcx = BigInteger.valueOf(100);
+        CrowdSaleScore crowdsaleScore = CrowdSaleScore.mustDeploy(txHandler, ownerWallet,
+                tokenScore.getAddress(), fundingGoalInIcx);
+
+        startCrowdsale(tokenScore, crowdsaleScore, initialSupply, fundingGoalInIcx);
+    }
+
+    void startCrowdsale(SampleTokenScore tokenScore, CrowdSaleScore crowdsaleScore,
+                        BigInteger initialSupply, BigInteger fundingGoalInIcx) throws Exception {
+        KeyWallet aliceWallet = KeyWallet.create();
+        KeyWallet bobWallet = KeyWallet.create();
+
+        // send 50 icx to Alice, 100 to Bob
+        LOG.infoEntering("transfer icx", "50 to Alice; 100 to Bob");
+        transferAndCheckResult(txHandler, aliceWallet.getAddress(), ICX.multiply(BigInteger.valueOf(50)));
+        transferAndCheckResult(txHandler, bobWallet.getAddress(), ICX.multiply(BigInteger.valueOf(100)));
+        LOG.infoExiting();
+
+        // transfer all tokens to crowdsale score
+        LOG.infoEntering("transfer token", "all tokens to crowdsale score from owner");
+        Bytes txHash = tokenScore.transfer(ownerWallet, crowdsaleScore.getAddress(), initialSupply);
+        crowdsaleScore.ensureFundingGoal(txHash, fundingGoalInIcx);
+        tokenScore.ensureTokenBalance(crowdsaleScore.getAddress(), initialSupply.longValue());
+        LOG.infoExiting();
+
+        // send icx to crowdsale score from Alice and Bob
+        LOG.infoEntering("transfer icx", "to crowdsale score (40 from Alice, 60 from Bob)");
+        Bytes[] ids = new Bytes[2];
+        ids[0] = txHandler.transfer(aliceWallet, crowdsaleScore.getAddress(), ICX.multiply(BigInteger.valueOf(40)));
+        ids[1] = txHandler.transfer(bobWallet, crowdsaleScore.getAddress(), ICX.multiply(BigInteger.valueOf(60)));
+        for (Bytes id : ids) {
+            assertEquals(Constants.STATUS_SUCCESS, txHandler.getResult(id).getStatus());
+        }
+        tokenScore.ensureTokenBalance(aliceWallet.getAddress(), 40);
+        tokenScore.ensureTokenBalance(bobWallet.getAddress(), 60);
+        LOG.infoExiting();
+
+        // check if goal reached
+        LOG.infoEntering("call", "checkGoalReached()");
+        crowdsaleScore.ensureCheckGoalReached(ownerWallet);
+        LOG.infoExiting();
+
+        // do safe withdrawal
+        LOG.infoEntering("call", "safeWithdrawal()");
+        BigInteger oldBal = txHandler.getBalance(ownerWallet.getAddress());
+        TransactionResult result = crowdsaleScore.safeWithdrawal(ownerWallet);
+        if (!Constants.STATUS_SUCCESS.equals(result.getStatus())) {
+            throw new IOException("Failed to execute safeWithdrawal.");
+        }
+        BigInteger amount = ICX.multiply(BigInteger.valueOf(100));
+        tokenScore.ensureFundTransfer(result, crowdsaleScore.getAddress(), ownerWallet.getAddress(), amount);
+
+        // check the final icx balance of owner
+        LOG.info("ICX balance before safeWithdrawal: " + oldBal);
+        BigInteger fee = result.getStepUsed().multiply(result.getStepPrice());
+        BigInteger newBal = oldBal.add(amount).subtract(fee);
+        Utils.ensureIcxBalance(txHandler, ownerWallet.getAddress(), oldBal, newBal);
+        LOG.infoExiting();
+    }
+}
