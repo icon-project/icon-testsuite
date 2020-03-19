@@ -38,6 +38,8 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.util.List;
 
+import static foundation.icon.test.Env.LOG;
+
 public class Utils {
     public static BigInteger getMicroTime() {
         long timestamp = System.currentTimeMillis() * 1000L;
@@ -70,7 +72,7 @@ public class Utils {
 
     public static BigInteger ensureIcxBalance(IconService iconService, Address address, BigInteger val) throws IOException {
         BigInteger balance = iconService.getBalance(address).execute();
-        System.out.println("ICX balance of " + address + ": " + balance);
+        LOG.info("ICX balance of " + address + ": " + balance);
         if (balance.compareTo(val) != 0) {
             throw new IOException("Balance changed!");
         }
@@ -82,12 +84,11 @@ public class Utils {
         BigInteger newValInt = BigInteger.valueOf(newVal).multiply(BigDecimal.TEN.pow(18).toBigInteger());
         while (true) {
             BigInteger icxBalance = iconService.getBalance(address).execute();
-            System.out.println("ICX balance of " + address + ": " + icxBalance);
+            LOG.info("ICX balance of " + address + ": " + icxBalance);
             if (icxBalance.equals(oldValInt)) {
                 try {
                     // wait until block confirmation
-                    System.out.println("Sleep 1.5 seconds");
-                    Thread.sleep(1500);
+                    Thread.sleep(1100);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -142,11 +143,9 @@ public class Utils {
             try {
                 result = iconService.getTransactionResult(txHash).execute();
             } catch (RpcError e) {
-                System.out.println("RpcError: code: " + e.getCode() + ", message: " + e.getMessage());
                 try {
                     // wait until block confirmation
-                    System.out.println("Sleep 1.5 seconds");
-                    Thread.sleep(1500);
+                    Thread.sleep(1100);
                 } catch (InterruptedException ie) {
                     ie.printStackTrace();
                 }
@@ -160,7 +159,6 @@ public class Utils {
         for (EventLog event : eventLogs) {
             if (event.getScoreAddress().equals(scoreAddress.toString())) {
                 String signature = event.getIndexed().get(0).asString();
-                System.out.println("function sig: " + signature);
                 if (funcSig.equals(signature)) {
                     return event;
                 }

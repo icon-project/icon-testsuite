@@ -34,6 +34,8 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.math.BigInteger;
 
+import static foundation.icon.test.Env.LOG;
+
 public class MultiSigWalletTest {
     private static final String WalletZipfile = "/ws/tests/multiSigWallet.zip";
     private static final String HelloZipfile = "/ws/tests/helloScore.zip";
@@ -44,7 +46,7 @@ public class MultiSigWalletTest {
     }
 
     private static void printTransactionHash(String header, Bytes txHash) {
-        System.out.println(header + ", txHash " + (++txCount) + ": " + txHash);
+        LOG.info(header + ", txHash " + (++txCount) + ": " + txHash);
     }
 
     private static BigInteger getTransactionId(TransactionResult result, Address scoreAddress) throws IOException {
@@ -139,9 +141,9 @@ public class MultiSigWalletTest {
         KeyWallet ownerWallet = Utils.createAndStoreWallet();
         KeyWallet aliceWallet = Utils.createAndStoreWallet();
         KeyWallet bobWallet = Utils.createAndStoreWallet();
-        System.out.println("Address of owner: " + ownerWallet.getAddress());
-        System.out.println("Address of Alice: " + aliceWallet.getAddress());
-        System.out.println("Address of Bob:   " + bobWallet.getAddress());
+        LOG.info("Address of owner: " + ownerWallet.getAddress());
+        LOG.info("Address of Alice: " + aliceWallet.getAddress());
+        LOG.info("Address of Bob:   " + bobWallet.getAddress());
 
         // transfer initial icx to test addresses
         Bytes txHash = Utils.transferIcx(iconService, godWallet, ownerWallet.getAddress(), "100");
@@ -168,7 +170,7 @@ public class MultiSigWalletTest {
             throw new IOException("Failed to deploy MultiSigWallet score.");
         }
         Address multiSigWalletAddress = new Address(result.getScoreAddress());
-        System.out.println("MultiSigWallet SCORE address: " + multiSigWalletAddress);
+        LOG.info("MultiSigWallet SCORE address: " + multiSigWalletAddress);
 
         // create a MultiSigWallet score instance
         MultiSigWalletScore multiSigWalletScore = new MultiSigWalletScore(iconService, multiSigWalletAddress);
@@ -210,7 +212,7 @@ public class MultiSigWalletTest {
             throw new IOException("Failed to deploy hello score.");
         }
         Address helloScoreAddress = new Address(result.getScoreAddress());
-        System.out.println("HelloScore address: " + helloScoreAddress);
+        LOG.info("HelloScore address: " + helloScoreAddress);
 
         // 3. tx is initiated by ownerWallet first
         txHash = multiSigWalletScore.submitIcxTransaction(ownerWallet, helloScoreAddress, 1, "send 1 icx to hello");

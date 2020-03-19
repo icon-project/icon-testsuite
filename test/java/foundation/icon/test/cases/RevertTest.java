@@ -21,101 +21,88 @@ import foundation.icon.icx.KeyWallet;
 import foundation.icon.icx.data.TransactionResult;
 import foundation.icon.icx.transport.http.HttpProvider;
 import foundation.icon.test.Constants;
-import foundation.icon.test.TransactionFailureException;
 import foundation.icon.test.Utils;
 import foundation.icon.test.score.StepCounterScore;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.math.BigInteger;
 
+import static foundation.icon.test.Env.LOG;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 public class RevertTest {
+    private static IconService iconService;
+
+    @BeforeAll
+    static void setup() {
+        iconService = new IconService(new HttpProvider(Constants.ENDPOINT_URL_LOCAL));
+    }
+
     @Test
-    public void testAll() throws IOException, TransactionFailureException {
-        IconService iconService = new IconService(
-                new HttpProvider(Constants.ENDPOINT_URL_LOCAL));
-
-        System.out.println("[#] Prepare wallets");
-
+    public void testAll() throws Exception {
         KeyWallet godWallet = Utils.readWalletFromFile("/ws/tests/keystore_test1.json", "test1_Account");
-        KeyWallet ownerWallet = Utils.createAndStoreWallet();
+        KeyWallet ownerWallet = KeyWallet.create();
         String ownerBalance = "1000";
         Utils.transferIcx(iconService, godWallet, ownerWallet.getAddress(), "1000");
         Utils.ensureIcxBalance(iconService, ownerWallet.getAddress(), 0, Long.parseLong(ownerBalance));
 
-        System.out.println("[>] Deploy SCORE1");
+        LOG.infoEntering("deploy", "SCORE1");
         StepCounterScore score1 = StepCounterScore.mustDeploy(iconService,
                 ownerWallet, "./step_counter.zip");
-        System.out.println("[<] StepCounter deployed:"+score1);
-
-        System.out.println("[>] Deploy SCORE2");
+        LOG.infoExiting("deployed:" + score1);
+        LOG.infoEntering("deploy", "SCORE2");
         StepCounterScore score2 = StepCounterScore.mustDeploy(iconService,
                 ownerWallet, "./step_counter.zip");
-        System.out.println("[<] StepCounter deployed:"+score2);
+        LOG.infoExiting("deployed:" + score2);
 
         TransactionResult txr;
         BigInteger v1, v2, v, v1new, v2new;
 
-        System.out.println("[>] "+score1+".getStep()");
+        LOG.infoEntering("call", score1 + ".getStep()");
         v1 = score1.getStep(ownerWallet.getAddress());
-        System.out.println("[<] getStep() => "+v1);
-        System.out.println("[>] "+score2+".getStep()");
+        LOG.infoExiting(v1.toString());
+        LOG.infoEntering("call", score2 + ".getStep()");
         v2 = score2.getStep(ownerWallet.getAddress());
-        System.out.println("[<] getStep() => "+v2);
+        LOG.infoExiting(v2.toString());
 
         v = v1.add(BigInteger.ONE);
 
-        System.out.println("[>] "+score2+".setStepOf("+score1+","+v+")");
+        LOG.infoEntering("call", score2 + ".setStepOf(" + score1 + "," + v + ")");
         txr = score2.setStepOf(ownerWallet, score1.getAddress(), v);
-        System.out.println("[<] Result:"+txr);
-        if (!BigInteger.ONE.equals(txr.getStatus())) {
-            System.err.println("[!] It should SUCCESS");
-            return;
-        }
-        v1 = score1.getStep(ownerWallet.getAddress());
-        if (!v.equals(v1)) {
-            System.err.println("[!] "+score1+".getValue() =>"+v1+" expect="+v);
-            return;
-        }
+        assertEquals(Constants.STATUS_SUCCESS, txr.getStatus());
+        LOG.infoExiting("Result:" + txr);
 
-        System.out.println("[>] "+score2+".setStepOf("+score1+","+v+")");
+        v1 = score1.getStep(ownerWallet.getAddress());
+        assertEquals(v, v1);
+
+        LOG.infoEntering("call", score2 + ".setStepOf(" + score1 + "," + v + ")");
         txr = score2.setStepOf(ownerWallet, score1.getAddress(), v);
-        System.out.println("[<] Result:"+txr);
-        if (BigInteger.ONE.equals(txr.getStatus())) {
-            System.err.println("[!] It should FAIL");
-            return;
-        }
+        assertEquals(Constants.STATUS_FAILURE, txr.getStatus());
+        LOG.infoExiting("Result:" + txr);
 
-        System.out.println("[>] "+score1+".getStep()");
+        LOG.infoEntering("call", score1 + ".getStep()");
         v1 = score1.getStep(ownerWallet.getAddress());
-        System.out.println("[<] getStep() => "+v1);
-        System.out.println("[>] "+score2+".getStep()");
+        LOG.infoExiting(v1.toString());
+        LOG.infoEntering("call", score2 + ".getStep()");
         v2 = score2.getStep(ownerWallet.getAddress());
-        System.out.println("[<] getStep() => "+v2);
+        LOG.infoExiting(v2.toString());
 
         v = v.add(BigInteger.ONE);
 
-        System.out.println("[>] "+score1+".trySetStepWith("+score2+","+v+")");
-        txr = score1.trySetStepWith(ownerWallet, score2.getAddress(),v);
-        System.out.println("[<] Result:"+txr);
-        if (BigInteger.ZERO.equals(txr.getStatus())) {
-            System.err.println("[!] It should SUCCESS");
-            return;
-        }
+        LOG.infoEntering("call", score1 + ".trySetStepWith(" + score2 + "," + v + ")");
+        txr = score1.trySetStepWith(ownerWallet, score2.getAddress(), v);
+        assertEquals(Constants.STATUS_SUCCESS, txr.getStatus());
+        LOG.infoExiting("Result:" + txr);
 
+        LOG.infoEntering("call", score2 + ".getStep()");
         v2new = score2.getStep(ownerWallet.getAddress());
-        if (!v2.equals(v2new)) {
-            System.err.println("[!] "+score2+".getValue()=>"+v2new+" expect="+v2);
-            return;
-        }
+        assertEquals(v2, v2new);
+        LOG.infoExiting(v2new.toString());
 
+        LOG.infoEntering("call", score1 + ".getStep()");
         v1new = score1.getStep(ownerWallet.getAddress());
-        if (!v.equals(v1new)) {
-            System.err.println("[!] "+score1+".getValue()=>"+v1new+" expect="+v);
-            return;
-        }
-        v1 = v1new;
-
-        System.out.println("SUCCESS");
+        assertEquals(v, v1new);
+        LOG.infoExiting(v1new.toString());
     }
 }

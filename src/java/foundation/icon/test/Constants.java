@@ -24,6 +24,8 @@ public class Constants {
     public static final String ENDPOINT_URL_LOCAL = "http://localhost:9000/api/v3";
     public static final String SERVER_URI = "http://localhost:9000";
     public static final BigInteger NETWORK_ID = BigInteger.valueOf(3);
+    public static final BigInteger STATUS_SUCCESS = BigInteger.ONE;
+    public static final BigInteger STATUS_FAILURE = BigInteger.ZERO;
     static final Address ZERO_ADDRESS = new Address("cx0000000000000000000000000000000000000000");
     static final String CONTENT_TYPE = "application/zip";
 }

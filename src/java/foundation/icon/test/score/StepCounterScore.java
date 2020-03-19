@@ -29,7 +29,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 
 public class StepCounterScore extends Score {
-    final static BigInteger Steps = BigInteger.valueOf(3).multiply(BigInteger.TEN.pow(6));
+    final static BigInteger STEPS = BigInteger.valueOf(3).multiply(BigInteger.TEN.pow(6));
 
     public static StepCounterScore mustDeploy(IconService service, Wallet wallet, String filePath)
             throws IOException, TransactionFailureException
@@ -46,7 +46,7 @@ public class StepCounterScore extends Score {
 
     public TransactionResult increaseStep(Wallet wallet) throws IOException {
         return this.invokeAndWaitResult(wallet,
-                "increaseStep", null, null, Steps);
+                "increaseStep", null, null, STEPS);
     }
 
     public TransactionResult setStep(Wallet wallet, BigInteger step) throws IOException {
@@ -55,7 +55,7 @@ public class StepCounterScore extends Score {
                 (new RpcObject.Builder())
                     .put("step", new RpcValue(step))
                     .build(),
-                null, Steps);
+                null, STEPS);
     }
 
     public TransactionResult resetStep(Wallet wallet, BigInteger step) throws IOException {
@@ -64,7 +64,7 @@ public class StepCounterScore extends Score {
                 (new RpcObject.Builder())
                         .put("step", new RpcValue(step))
                         .build(),
-                null, Steps);
+                null, STEPS);
     }
 
     public TransactionResult setStepOf(Wallet wallet, Address target, BigInteger step) throws IOException {
@@ -72,9 +72,9 @@ public class StepCounterScore extends Score {
                 "setStepOf",
                 (new RpcObject.Builder())
                     .put("step", new RpcValue(step))
-                    .put( "addr", new RpcValue(target))
+                    .put("addr", new RpcValue(target))
                     .build(),
-                null, Steps);
+                null, STEPS);
     }
 
     public TransactionResult trySetStepWith(Wallet wallet, Address target, BigInteger step) throws IOException {
@@ -82,9 +82,9 @@ public class StepCounterScore extends Score {
                 "trySetStepWith",
                 (new RpcObject.Builder())
                         .put("step", new RpcValue(step))
-                        .put( "addr", new RpcValue(target))
+                        .put("addr", new RpcValue(target))
                         .build(),
-                null, Steps);
+                null, STEPS);
     }
 
     public BigInteger getStep(Address from) throws IOException {
