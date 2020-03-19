@@ -30,11 +30,13 @@ import foundation.icon.icx.transport.jsonrpc.RpcObject;
 import foundation.icon.test.Constants;
 import foundation.icon.test.TransactionFailureException;
 import foundation.icon.test.Utils;
+import foundation.icon.test.util.ZipFile;
 
 import java.io.IOException;
 import java.math.BigInteger;
 
 public class Score {
+    private static final String SCORE_ROOT = "./test/scores/";
     private static final BigInteger STATUS_SUCCESS = BigInteger.ONE;
 
     private IconService service;
@@ -45,18 +47,19 @@ public class Score {
         this.target = target;
     }
 
-    public static TransactionResult deployAndWaitResult(IconService service, Wallet wallet, String filePath, RpcObject params)
+    public static TransactionResult deployAndWaitResult(IconService service, Wallet wallet, String pkgName, RpcObject params)
             throws IOException
     {
-        Bytes txHash = Utils.deployScore(service, wallet, filePath, params);
+        byte[] content = ZipFile.zipContent(SCORE_ROOT + pkgName);
+        Bytes txHash = Utils.deployScore(service, wallet, content, params);
         return Utils.getTransactionResult(service, txHash);
     }
 
-    public static Address mustDeploy(IconService service, Wallet wallet, String filePath,
+    public static Address mustDeploy(IconService service, Wallet wallet, String pkgName,
                                      RpcObject params)
         throws IOException, TransactionFailureException
     {
-        TransactionResult result = deployAndWaitResult(service, wallet, filePath, params);
+        TransactionResult result = deployAndWaitResult(service, wallet, pkgName, params);
         if (!STATUS_SUCCESS.equals(result.getStatus())) {
             throw new TransactionFailureException(result.getFailure());
         }

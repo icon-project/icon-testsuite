@@ -117,6 +117,10 @@ public class Utils {
 
     public static Bytes deployScore(IconService iconService, Wallet fromWallet, String zipfile, RpcObject params) throws IOException {
         byte[] content = readFile(zipfile);
+        return deployScore(iconService, fromWallet, content, params);
+    }
+
+    public static Bytes deployScore(IconService iconService, Wallet fromWallet, byte[] content, RpcObject params) throws IOException {
         Transaction transaction = TransactionBuilder.newBuilder()
                 .nid(Constants.NETWORK_ID)
                 .from(fromWallet.getAddress())

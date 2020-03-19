@@ -48,12 +48,10 @@ public class RevertTest {
         Utils.ensureIcxBalance(iconService, ownerWallet.getAddress(), 0, Long.parseLong(ownerBalance));
 
         LOG.infoEntering("deploy", "SCORE1");
-        StepCounterScore score1 = StepCounterScore.mustDeploy(iconService,
-                ownerWallet, "./step_counter.zip");
+        StepCounterScore score1 = StepCounterScore.mustDeploy(iconService, ownerWallet);
         LOG.infoExiting("deployed:" + score1);
         LOG.infoEntering("deploy", "SCORE2");
-        StepCounterScore score2 = StepCounterScore.mustDeploy(iconService,
-                ownerWallet, "./step_counter.zip");
+        StepCounterScore score2 = StepCounterScore.mustDeploy(iconService, ownerWallet);
         LOG.infoExiting("deployed:" + score2);
 
         TransactionResult txr;

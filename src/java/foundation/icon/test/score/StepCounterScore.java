@@ -29,14 +29,14 @@ import java.io.IOException;
 import java.math.BigInteger;
 
 public class StepCounterScore extends Score {
-    final static BigInteger STEPS = BigInteger.valueOf(3).multiply(BigInteger.TEN.pow(6));
+    private static final BigInteger STEPS = BigInteger.valueOf(200000);
 
-    public static StepCounterScore mustDeploy(IconService service, Wallet wallet, String filePath)
+    public static StepCounterScore mustDeploy(IconService service, Wallet wallet)
             throws IOException, TransactionFailureException
     {
         return new StepCounterScore(
                 service,
-                Score.mustDeploy(service, wallet, filePath, null)
+                Score.mustDeploy(service, wallet, "step_counter", null)
         );
     }
 
