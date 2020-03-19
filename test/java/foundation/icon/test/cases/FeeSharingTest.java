@@ -139,7 +139,8 @@ public class FeeSharingTest {
         return txHash;
     }
 
-    private void runTest() throws IOException {
+    @Test
+    public void runTest() throws IOException {
         FeeShareScore feeShareOwner = new FeeShareScore(iconService, ownerWallet, scoreAddress);
         System.out.println("value: " + feeShareOwner.getValue());
 
@@ -246,11 +247,5 @@ public class FeeSharingTest {
                     .build();
             return iconService.call(call).execute();
         }
-    }
-
-    @Test
-    public void testAll() throws IOException {
-        FeeSharingTest test = new FeeSharingTest();
-        test.runTest();
     }
 }
