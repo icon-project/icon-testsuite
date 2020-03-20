@@ -16,16 +16,18 @@
 
 package foundation.icon.test.score;
 
-import foundation.icon.icx.IconService;
+import foundation.icon.icx.Transaction;
+import foundation.icon.icx.TransactionBuilder;
 import foundation.icon.icx.Wallet;
 import foundation.icon.icx.data.Address;
+import foundation.icon.icx.data.Bytes;
 import foundation.icon.icx.data.TransactionResult;
 import foundation.icon.icx.transport.jsonrpc.RpcItem;
 import foundation.icon.icx.transport.jsonrpc.RpcObject;
 import foundation.icon.icx.transport.jsonrpc.RpcValue;
 import foundation.icon.test.Constants;
-import foundation.icon.test.Env;
 import foundation.icon.test.ResultTimeoutException;
+import foundation.icon.test.TransactionFailureException;
 import foundation.icon.test.TransactionHandler;
 
 import java.io.IOException;
@@ -33,12 +35,17 @@ import java.math.BigInteger;
 
 public class FeeShareScore extends Score {
     private static final BigInteger STEPS = Constants.DEFAULT_STEPS;
-
     private final Wallet wallet;
 
-    public FeeShareScore(IconService service, Wallet wallet, Address address) throws IOException {
-        super(new TransactionHandler(service, Env.getDefaultChain()), address);
+    public FeeShareScore(Score other, Wallet wallet) {
+        super(other);
         this.wallet = wallet;
+    }
+
+    public static FeeShareScore mustDeploy(TransactionHandler txHandler, Wallet ownerWallet)
+            throws ResultTimeoutException, TransactionFailureException, IOException {
+        return new FeeShareScore(
+                txHandler.deploy(ownerWallet, getFilePath("fee_sharing"), null), ownerWallet);
     }
 
     public String getValue() throws IOException {
@@ -63,5 +70,41 @@ public class FeeShareScore extends Score {
                         .put("value", new RpcValue(value))
                         .build(),
                 null, STEPS);
+    }
+
+    public Bytes addDeposit(BigInteger depositAmount)
+            throws IOException, ResultTimeoutException {
+        Transaction transaction = TransactionBuilder.newBuilder()
+                .nid(getNetworkId())
+                .from(wallet.getAddress())
+                .to(getAddress())
+                .value(depositAmount)
+                .stepLimit(STEPS)
+                .deposit()
+                .add()
+                .build();
+        Bytes txHash = invoke(wallet, transaction);
+        TransactionResult result = getResult(txHash);
+        if (!Constants.STATUS_SUCCESS.equals(result.getStatus())) {
+            throw new IOException("Add deposit failed!");
+        }
+        return txHash;
+    }
+
+    public void withdrawDeposit(Bytes depositId)
+            throws IOException, ResultTimeoutException {
+        Transaction transaction = TransactionBuilder.newBuilder()
+                .nid(BigInteger.valueOf(3))
+                .from(wallet.getAddress())
+                .to(getAddress())
+                .stepLimit(STEPS)
+                .deposit()
+                .withdraw(depositId)
+                .build();
+        Bytes txHash = invoke(wallet, transaction);
+        TransactionResult result = getResult(txHash);
+        if (!Constants.STATUS_SUCCESS.equals(result.getStatus())) {
+            throw new IOException("Withdraw deposit failed!");
+        }
     }
 }

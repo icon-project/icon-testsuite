@@ -16,50 +16,20 @@
 
 package foundation.icon.test;
 
-import foundation.icon.icx.*;
+import foundation.icon.icx.KeyWallet;
 import foundation.icon.icx.crypto.KeystoreException;
 import foundation.icon.icx.data.Address;
-import foundation.icon.icx.data.Bytes;
-import foundation.icon.icx.data.IconAmount;
 import foundation.icon.icx.data.TransactionResult;
 import foundation.icon.icx.data.TransactionResult.EventLog;
-import foundation.icon.icx.transport.jsonrpc.RpcError;
-import foundation.icon.icx.transport.jsonrpc.RpcObject;
 
 import java.io.File;
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.util.List;
 
 import static foundation.icon.test.Env.LOG;
 
 public class Utils {
-    public static BigInteger getMicroTime() {
-        long timestamp = System.currentTimeMillis() * 1000L;
-        return new BigInteger(Long.toString(timestamp));
-    }
-
-    public static KeyWallet createAndStoreWallet() throws IOException {
-        try {
-            KeyWallet wallet = KeyWallet.create();
-            KeyWallet.store(wallet, "P@sswOrd", new File("/tmp"));
-            return wallet;
-        } catch (InvalidAlgorithmParameterException | NoSuchAlgorithmException | NoSuchProviderException e) {
-            e.printStackTrace();
-            throw new IOException("Key creation failed!");
-        } catch (KeystoreException e) {
-            e.printStackTrace();
-            throw new IOException("Key store failed!");
-        }
-    }
-
     public static KeyWallet readWalletFromFile(String path, String password) throws IOException {
         try {
             File file = new File(path);
@@ -95,94 +65,6 @@ public class Utils {
                         newVal, icxBalance));
             }
         }
-    }
-
-    public static BigInteger ensureIcxBalance(IconService iconService, Address address, BigInteger val) throws IOException {
-        BigInteger balance = iconService.getBalance(address).execute();
-        LOG.info("ICX balance of " + address + ": " + balance);
-        if (balance.compareTo(val) != 0) {
-            throw new IOException("Balance changed!");
-        }
-        return balance;
-    }
-
-    public static BigInteger ensureIcxBalance(IconService iconService, Address address, long oldVal, long newVal) throws IOException {
-        BigInteger oldValInt = BigInteger.valueOf(oldVal).multiply(BigDecimal.TEN.pow(18).toBigInteger());
-        BigInteger newValInt = BigInteger.valueOf(newVal).multiply(BigDecimal.TEN.pow(18).toBigInteger());
-        while (true) {
-            BigInteger icxBalance = iconService.getBalance(address).execute();
-            LOG.info("ICX balance of " + address + ": " + icxBalance);
-            if (icxBalance.equals(oldValInt)) {
-                try {
-                    // wait until block confirmation
-                    Thread.sleep(1100);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            } else if (icxBalance.equals(newValInt)) {
-                return newValInt;
-            } else {
-                throw new IOException("ICX balance mismatch!");
-            }
-        }
-    }
-
-    public static Bytes transferIcx(IconService iconService, Wallet fromWallet, Address to, String value) throws IOException {
-        Transaction transaction = TransactionBuilder.newBuilder()
-                .nid(Constants.NETWORK_ID)
-                .from(fromWallet.getAddress())
-                .to(to)
-                .value(IconAmount.of(value, IconAmount.Unit.ICX).toLoop())
-                .stepLimit(new BigInteger("2000000"))
-                .timestamp(getMicroTime())
-                .nonce(new BigInteger("1"))
-                .build();
-
-        SignedTransaction signedTransaction = new SignedTransaction(transaction, fromWallet);
-        return iconService.sendTransaction(signedTransaction).execute();
-    }
-
-    public static Bytes deployScore(IconService iconService, Wallet fromWallet, String zipfile, RpcObject params) throws IOException {
-        byte[] content = readFile(zipfile);
-        return deployScore(iconService, fromWallet, content, params);
-    }
-
-    public static Bytes deployScore(IconService iconService, Wallet fromWallet, byte[] content, RpcObject params) throws IOException {
-        Transaction transaction = TransactionBuilder.newBuilder()
-                .nid(Constants.NETWORK_ID)
-                .from(fromWallet.getAddress())
-                .to(Constants.ZERO_ADDRESS)
-                .stepLimit(new BigInteger("80000000", 16))
-                .timestamp(getMicroTime())
-                .nonce(new BigInteger("1"))
-                .deploy(Constants.CONTENT_TYPE_PYTHON, content)
-                .params(params)
-                .build();
-
-        SignedTransaction signedTransaction = new SignedTransaction(transaction, fromWallet);
-        return iconService.sendTransaction(signedTransaction).execute();
-    }
-
-    private static byte[] readFile(String zipfile) throws IOException {
-        Path path = Paths.get(zipfile);
-        return Files.readAllBytes(path);
-    }
-
-    public static TransactionResult getTransactionResult(IconService iconService, Bytes txHash) throws IOException {
-        TransactionResult result = null;
-        while (result == null) {
-            try {
-                result = iconService.getTransactionResult(txHash).execute();
-            } catch (RpcError e) {
-                try {
-                    // wait until block confirmation
-                    Thread.sleep(1100);
-                } catch (InterruptedException ie) {
-                    ie.printStackTrace();
-                }
-            }
-        }
-        return result;
     }
 
     public static EventLog findEventLogWithFuncSig(TransactionResult result, Address scoreAddress, String funcSig) {

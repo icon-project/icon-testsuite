@@ -68,13 +68,12 @@ public class Score {
     }
 
     public Bytes invoke(Wallet wallet, String method, RpcObject params,
-                        long value, long steps) throws IOException {
-        return invoke(wallet, method, params, BigInteger.valueOf(value), BigInteger.valueOf(steps));
-    }
-
-    public Bytes invoke(Wallet wallet, String method, RpcObject params,
                         BigInteger value, BigInteger steps) throws IOException {
         return invoke(wallet, method, params, value, steps, null, null);
+    }
+
+    public Bytes invoke(Wallet wallet, Transaction tx) throws IOException {
+        return this.txHandler.invoke(wallet, tx);
     }
 
     public Bytes invoke(Wallet wallet, String method, RpcObject params, BigInteger value,
