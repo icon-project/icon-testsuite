@@ -91,7 +91,8 @@ public class Utils {
                 LOG.info(msg);
                 break;
             } else {
-                throw new IOException("ICX balance mismatch!");
+                throw new IOException(String.format("ICX balance mismatch: expected <%s>, but was <%s>",
+                        newVal, icxBalance));
             }
         }
     }
