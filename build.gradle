@@ -25,4 +25,7 @@ dependencies {
 test {
     useJUnitPlatform()
     testLogging.showStandardStreams = true
+
+    // propagate system properties
+    systemProperty("env.props", System.getProperty("env.props", "conf/env.props"))
 }

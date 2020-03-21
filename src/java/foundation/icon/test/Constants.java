@@ -21,10 +21,6 @@ import foundation.icon.icx.data.Address;
 import java.math.BigInteger;
 
 public class Constants {
-    public static final String ENDPOINT_URL_LOCAL = "http://localhost:9000/api/v3";
-    public static final String SERVER_URI = "http://localhost:9000";
-    public static final BigInteger NETWORK_ID = BigInteger.valueOf(3);
-
     public static final BigInteger STATUS_SUCCESS = BigInteger.ONE;
     public static final BigInteger STATUS_FAILURE = BigInteger.ZERO;
 

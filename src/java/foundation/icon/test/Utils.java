@@ -16,13 +16,10 @@
 
 package foundation.icon.test;
 
-import foundation.icon.icx.KeyWallet;
-import foundation.icon.icx.crypto.KeystoreException;
 import foundation.icon.icx.data.Address;
 import foundation.icon.icx.data.TransactionResult;
 import foundation.icon.icx.data.TransactionResult.EventLog;
 
-import java.io.File;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.List;
@@ -30,16 +27,6 @@ import java.util.List;
 import static foundation.icon.test.Env.LOG;
 
 public class Utils {
-    public static KeyWallet readWalletFromFile(String path, String password) throws IOException {
-        try {
-            File file = new File(path);
-            return KeyWallet.load(password, file);
-        } catch (KeystoreException e) {
-            e.printStackTrace();
-            throw new IOException("Key load failed!");
-        }
-    }
-
     public static void ensureIcxBalance(TransactionHandler txHandler, Address address,
                                         BigInteger oldVal, BigInteger newVal) throws Exception {
         long limitTime = System.currentTimeMillis() + Constants.DEFAULT_WAITING_TIME;

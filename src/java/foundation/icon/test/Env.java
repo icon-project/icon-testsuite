@@ -16,30 +16,88 @@
 
 package foundation.icon.test;
 
+import foundation.icon.icx.KeyWallet;
 import foundation.icon.icx.Wallet;
+import foundation.icon.icx.crypto.KeystoreException;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Paths;
+import java.util.Properties;
 
 public class Env {
     public static final Log LOG = Log.getGlobal();
-    private static final String LOCAL_URI = "http://localhost:9000";
+    private static Chain chain;
 
-    public static Chain getDefaultChain() throws IOException {
-        Wallet godWallet = Utils.readWalletFromFile("/ws/tests/keystore_test1.json", "test1_Account");
-        return new Chain(3, godWallet);
+    static {
+        String envFile = System.getProperty("env.props", "conf/env.props");
+        Properties props = new Properties();
+        try {
+            LOG.info("Using env.props: " + envFile);
+            FileInputStream fis = new FileInputStream(envFile);
+            props.load(fis);
+            fis.close();
+        } catch (IOException e) {
+            System.err.printf("'%s' does not exist\n", envFile);
+            throw new IllegalArgumentException(e.getMessage());
+        }
+        readProperties(props);
+    }
+
+    private static void readProperties(Properties props) {
+        String chainName = "chain";
+        String nid = props.getProperty(chainName + ".nid");
+        if (nid == null) {
+            throw new IllegalArgumentException("nid not found");
+        }
+        String confPath = Paths.get("conf").toAbsolutePath().toString() + "/";
+        String godWalletPath = confPath + props.getProperty(chainName + ".godWallet");
+        String godPassword = props.getProperty(chainName + ".godPassword");
+        KeyWallet godWallet;
+        try {
+            godWallet = readWalletFromFile(godWalletPath, godPassword);
+        } catch (IOException e) {
+            throw new IllegalArgumentException(e.getMessage());
+        }
+        String nodeName = "node";
+        String url = props.getProperty(nodeName + ".url");
+        if (url == null) {
+            throw new IllegalArgumentException("node url not found");
+        }
+        chain = new Chain(Integer.parseInt(nid.substring(2), 16), godWallet, url);
+    }
+
+    private static KeyWallet readWalletFromFile(String path, String password) throws IOException {
+        try {
+            File file = new File(path);
+            return KeyWallet.load(password, file);
+        } catch (KeystoreException e) {
+            e.printStackTrace();
+            throw new IOException("Key load failed!");
+        }
+    }
+
+    public static Chain getDefaultChain() {
+        if (chain == null) {
+            throw new AssertionError("Chain not found");
+        }
+        return chain;
     }
 
     public static class Chain {
         public final int networkId;
         public final Wallet godWallet;
+        private final String nodeUrl;
 
-        public Chain(int networkId, Wallet godWallet) {
+        public Chain(int networkId, Wallet godWallet, String url) {
             this.networkId = networkId;
             this.godWallet = godWallet;
+            this.nodeUrl = url;
         }
 
         public String getEndpointURL(int v) {
-            return LOCAL_URI + "/api/v" + v + "/";
+            return this.nodeUrl + "/api/v" + v + "/";
         }
     }
 }
