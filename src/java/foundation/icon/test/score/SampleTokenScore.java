@@ -45,7 +45,7 @@ public class SampleTokenScore extends Score {
                 .put("_decimals", new RpcValue(decimals))
                 .put("_initialSupply", new RpcValue(initialSupply))
                 .build();
-        Score score = txHandler.deploy(owner, Score.getFilePath("sample_token"), params);
+        Score score = txHandler.deploy(owner, getFilePath("sample_token"), params);
         LOG.info("scoreAddr = " + score.getAddress());
         LOG.infoExiting();
         return new SampleTokenScore(score);

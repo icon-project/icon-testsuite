@@ -33,7 +33,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 
 public class Score {
-    private static final String SCORE_ROOT = "./test/scores/";
+    private static final String SCORE_ROOT = "src/scores/";
     private final TransactionHandler txHandler;
     private final Address address;
 

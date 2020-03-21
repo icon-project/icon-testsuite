@@ -44,7 +44,7 @@ public class CrowdSaleScore extends Score {
                 .put("_tokenScore", new RpcValue(tokenAddress))
                 .put("_durationInBlocks", new RpcValue(BigInteger.valueOf(10)))
                 .build();
-        Score score = txHandler.deploy(owner, Score.getFilePath("sample_crowdsale"), params);
+        Score score = txHandler.deploy(owner, getFilePath("sample_crowdsale"), params);
         LOG.info("scoreAddr = " + score.getAddress());
         LOG.infoExiting();
         return new CrowdSaleScore(score);

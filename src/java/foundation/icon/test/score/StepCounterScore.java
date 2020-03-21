@@ -39,7 +39,7 @@ public class StepCounterScore extends Score {
     public static StepCounterScore mustDeploy(TransactionHandler txHandler, Wallet wallet)
             throws IOException, TransactionFailureException, ResultTimeoutException {
         return new StepCounterScore(
-                txHandler.deploy(wallet, Score.getFilePath("step_counter"), null)
+                txHandler.deploy(wallet, getFilePath("step_counter"), null)
         );
     }
 
