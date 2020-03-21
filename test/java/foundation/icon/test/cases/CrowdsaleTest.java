@@ -18,15 +18,13 @@ package foundation.icon.test.cases;
 
 import foundation.icon.icx.IconService;
 import foundation.icon.icx.KeyWallet;
-import foundation.icon.icx.data.Address;
 import foundation.icon.icx.data.Bytes;
 import foundation.icon.icx.data.TransactionResult;
 import foundation.icon.icx.transport.http.HttpProvider;
 import foundation.icon.test.Constants;
 import foundation.icon.test.Env;
-import foundation.icon.test.ResultTimeoutException;
+import foundation.icon.test.TestBase;
 import foundation.icon.test.TransactionHandler;
-import foundation.icon.test.Utils;
 import foundation.icon.test.score.CrowdSaleScore;
 import foundation.icon.test.score.SampleTokenScore;
 import org.junit.jupiter.api.BeforeAll;
@@ -38,9 +36,7 @@ import java.math.BigInteger;
 import static foundation.icon.test.Env.LOG;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class CrowdsaleTest {
-    private static final BigInteger ICX = BigInteger.TEN.pow(18);
-
+public class CrowdsaleTest extends TestBase {
     private static TransactionHandler txHandler;
     private static KeyWallet ownerWallet;
 
@@ -54,13 +50,7 @@ public class CrowdsaleTest {
         // transfer initial icx to owner address
         BigInteger amount = ICX.multiply(BigInteger.valueOf(30));
         txHandler.transfer(ownerWallet.getAddress(), amount);
-        Utils.ensureIcxBalance(txHandler, ownerWallet.getAddress(), BigInteger.ZERO, amount);
-    }
-
-    private static void transferAndCheckResult(TransactionHandler txHandler, Address to, BigInteger amount)
-            throws IOException, ResultTimeoutException {
-        Bytes txHash = txHandler.transfer(to, amount);
-        assertEquals(Constants.STATUS_SUCCESS, txHandler.getResult(txHash).getStatus());
+        ensureIcxBalance(txHandler, ownerWallet.getAddress(), BigInteger.ZERO, amount);
     }
 
     @Test
@@ -103,7 +93,7 @@ public class CrowdsaleTest {
         ids[0] = txHandler.transfer(aliceWallet, crowdsaleScore.getAddress(), ICX.multiply(BigInteger.valueOf(40)));
         ids[1] = txHandler.transfer(bobWallet, crowdsaleScore.getAddress(), ICX.multiply(BigInteger.valueOf(60)));
         for (Bytes id : ids) {
-            assertEquals(Constants.STATUS_SUCCESS, txHandler.getResult(id).getStatus());
+            assertSuccess(txHandler.getResult(id));
         }
         tokenScore.ensureTokenBalance(aliceWallet.getAddress(), 40);
         tokenScore.ensureTokenBalance(bobWallet.getAddress(), 60);
@@ -128,7 +118,7 @@ public class CrowdsaleTest {
         LOG.info("ICX balance before safeWithdrawal: " + oldBal);
         BigInteger fee = result.getStepUsed().multiply(result.getStepPrice());
         BigInteger newBal = oldBal.add(amount).subtract(fee);
-        Utils.ensureIcxBalance(txHandler, ownerWallet.getAddress(), oldBal, newBal);
+        ensureIcxBalance(txHandler, ownerWallet.getAddress(), oldBal, newBal);
         LOG.infoExiting();
     }
 }

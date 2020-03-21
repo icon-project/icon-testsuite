@@ -26,10 +26,9 @@ import foundation.icon.icx.transport.http.HttpProvider;
 import foundation.icon.icx.transport.jsonrpc.RpcArray;
 import foundation.icon.icx.transport.jsonrpc.RpcItem;
 import foundation.icon.icx.transport.jsonrpc.RpcObject;
-import foundation.icon.test.Constants;
 import foundation.icon.test.Env;
+import foundation.icon.test.TestBase;
 import foundation.icon.test.TransactionHandler;
-import foundation.icon.test.Utils;
 import foundation.icon.test.score.FeeShareScore;
 import foundation.icon.test.score.GovScore;
 import org.junit.jupiter.api.BeforeAll;
@@ -39,10 +38,8 @@ import java.io.IOException;
 import java.math.BigInteger;
 
 import static foundation.icon.test.Env.LOG;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class FeeSharingTest {
-    private static final BigInteger ICX = BigInteger.TEN.pow(18);
+public class FeeSharingTest extends TestBase {
     private static TransactionHandler txHandler;
     private static KeyWallet ownerWallet;
     private static KeyWallet aliceWallet;
@@ -61,8 +58,8 @@ public class FeeSharingTest {
         BigInteger ownerBalance = ICX.multiply(new BigInteger("5030")); // deploy(30) + deposit(5000)
         txHandler.transfer(ownerWallet.getAddress(), ownerBalance);
         txHandler.transfer(aliceWallet.getAddress(), ICX);
-        Utils.ensureIcxBalance(txHandler, ownerWallet.getAddress(), BigInteger.ZERO, ownerBalance);
-        Utils.ensureIcxBalance(txHandler, aliceWallet.getAddress(), BigInteger.ZERO, ICX);
+        ensureIcxBalance(txHandler, ownerWallet.getAddress(), BigInteger.ZERO, ownerBalance);
+        ensureIcxBalance(txHandler, aliceWallet.getAddress(), BigInteger.ZERO, ICX);
     }
 
     private static BigInteger ensureIcxBalance(Address address, BigInteger val)
@@ -86,7 +83,7 @@ public class FeeSharingTest {
         // add alice into the white list
         LOG.infoEntering("invoke", "addToWhitelist(alice)");
         TransactionResult result = feeShareOwner.addToWhitelist(aliceWallet.getAddress(), 100);
-        assertEquals(Constants.STATUS_SUCCESS, result.getStatus());
+        assertSuccess(result);
         LOG.infoExiting();
 
         // set value before adding deposit (user balance should be decreased)
@@ -94,7 +91,7 @@ public class FeeSharingTest {
         FeeShareScore feeShareAlice = new FeeShareScore(feeShareOwner, aliceWallet);
         BigInteger aliceBalance = txHandler.getBalance(aliceWallet.getAddress());
         result = feeShareAlice.setValue("alice #1");
-        assertEquals(Constants.STATUS_SUCCESS, result.getStatus());
+        assertSuccess(result);
         LOG.info("value: " + feeShareAlice.getValue());
         // check if the balance was decreased
         BigInteger fee = result.getStepUsed().multiply(result.getStepPrice());
@@ -111,7 +108,7 @@ public class FeeSharingTest {
         // set value after adding deposit (user balance should NOT be decreased)
         LOG.infoEntering("invoke", "setValue() after adding deposit");
         result = feeShareAlice.setValue("alice #2");
-        assertEquals(Constants.STATUS_SUCCESS, result.getStatus());
+        assertSuccess(result);
         printStepUsedDetails(result.getStepUsedDetails());
         LOG.info("value: " + feeShareAlice.getValue());
         LOG.info("stepUsed: " + result.getStepUsed());
@@ -129,7 +126,7 @@ public class FeeSharingTest {
         // set value after withdrawing deposit (user balance should be decreased again)
         LOG.infoEntering("invoke", "setValue() after withdrawing deposit");
         result = feeShareAlice.setValue("alice #3");
-        assertEquals(Constants.STATUS_SUCCESS, result.getStatus());
+        assertSuccess(result);
         LOG.info("value: " + feeShareAlice.getValue());
         // check if the balance was decreased
         fee = result.getStepUsed().multiply(result.getStepPrice());

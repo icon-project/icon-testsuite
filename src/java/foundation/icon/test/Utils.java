@@ -20,40 +20,9 @@ import foundation.icon.icx.data.Address;
 import foundation.icon.icx.data.TransactionResult;
 import foundation.icon.icx.data.TransactionResult.EventLog;
 
-import java.io.IOException;
-import java.math.BigInteger;
 import java.util.List;
 
-import static foundation.icon.test.Env.LOG;
-
 public class Utils {
-    public static void ensureIcxBalance(TransactionHandler txHandler, Address address,
-                                        BigInteger oldVal, BigInteger newVal) throws Exception {
-        long limitTime = System.currentTimeMillis() + Constants.DEFAULT_WAITING_TIME;
-        while (true) {
-            BigInteger icxBalance = txHandler.getBalance(address);
-            String msg = "ICX balance of " + address + ": " + icxBalance;
-            if (icxBalance.equals(oldVal)) {
-                if (limitTime < System.currentTimeMillis()) {
-                    throw new ResultTimeoutException();
-                }
-                try {
-                    // wait until block confirmation
-                    LOG.debug(msg + "; Retry in 1 sec.");
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            } else if (icxBalance.equals(newVal)) {
-                LOG.info(msg);
-                break;
-            } else {
-                throw new IOException(String.format("ICX balance mismatch: expected <%s>, but was <%s>",
-                        newVal, icxBalance));
-            }
-        }
-    }
-
     public static EventLog findEventLogWithFuncSig(TransactionResult result, Address scoreAddress, String funcSig) {
         List<EventLog> eventLogs = result.getEventLogs();
         for (EventLog event : eventLogs) {

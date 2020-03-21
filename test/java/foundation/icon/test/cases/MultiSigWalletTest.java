@@ -19,28 +19,23 @@ package foundation.icon.test.cases;
 import foundation.icon.icx.IconService;
 import foundation.icon.icx.KeyWallet;
 import foundation.icon.icx.data.Address;
-import foundation.icon.icx.data.Bytes;
 import foundation.icon.icx.data.TransactionResult;
 import foundation.icon.icx.transport.http.HttpProvider;
 import foundation.icon.icx.transport.jsonrpc.RpcItem;
-import foundation.icon.test.Constants;
 import foundation.icon.test.Env;
-import foundation.icon.test.ResultTimeoutException;
+import foundation.icon.test.TestBase;
 import foundation.icon.test.TransactionHandler;
-import foundation.icon.test.Utils;
 import foundation.icon.test.score.HelloWorld;
 import foundation.icon.test.score.MultiSigWalletScore;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.math.BigInteger;
 
 import static foundation.icon.test.Env.LOG;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class MultiSigWalletTest {
-    private static final BigInteger ICX = BigInteger.TEN.pow(18);
+public class MultiSigWalletTest extends TestBase {
     private static final BigInteger TWO = BigInteger.valueOf(2);
     private static final BigInteger THREE = BigInteger.valueOf(3);
     private static final BigInteger FIVE = BigInteger.valueOf(5);
@@ -61,14 +56,8 @@ public class MultiSigWalletTest {
             txHandler.transfer(wallets[i].getAddress(), amount);
         }
         for (KeyWallet wallet : wallets) {
-            Utils.ensureIcxBalance(txHandler, wallet.getAddress(), BigInteger.ZERO, amount);
+            ensureIcxBalance(txHandler, wallet.getAddress(), BigInteger.ZERO, amount);
         }
-    }
-
-    private static void transferAndCheckResult(TransactionHandler txHandler, Address to, BigInteger amount)
-            throws IOException, ResultTimeoutException {
-        Bytes txHash = txHandler.transfer(to, amount);
-        assertEquals(Constants.STATUS_SUCCESS, txHandler.getResult(txHash).getStatus());
     }
 
     @Test
@@ -94,7 +83,7 @@ public class MultiSigWalletTest {
         // deposit 5 icx to the multiSigWallet first
         LOG.info("transfer: 5 icx to multiSigWallet");
         transferAndCheckResult(txHandler, multiSigWalletAddress, ICX.multiply(FIVE));
-        Utils.ensureIcxBalance(txHandler, multiSigWalletAddress, BigInteger.ZERO, ICX.multiply(FIVE));
+        ensureIcxBalance(txHandler, multiSigWalletAddress, BigInteger.ZERO, ICX.multiply(FIVE));
         LOG.infoExiting();
 
         // *** 1. Send 2 icx to Bob (EOA)
@@ -112,8 +101,8 @@ public class MultiSigWalletTest {
         multiSigWalletScore.ensureExecution(result, txId);
 
         // check icx balances
-        Utils.ensureIcxBalance(txHandler, multiSigWalletAddress, ICX.multiply(FIVE), ICX.multiply(THREE));
-        Utils.ensureIcxBalance(txHandler, bobWallet.getAddress(), bobBalance, bobBalance.add(ICX.multiply(TWO)));
+        ensureIcxBalance(txHandler, multiSigWalletAddress, ICX.multiply(FIVE), ICX.multiply(THREE));
+        ensureIcxBalance(txHandler, bobWallet.getAddress(), bobBalance, bobBalance.add(ICX.multiply(TWO)));
         LOG.infoExiting();
 
         // *** 2. Send 1 icx to Contract
@@ -133,8 +122,8 @@ public class MultiSigWalletTest {
         multiSigWalletScore.ensureExecution(result, txId);
 
         // check icx balances
-        Utils.ensureIcxBalance(txHandler, multiSigWalletAddress, ICX.multiply(THREE), ICX.multiply(TWO));
-        Utils.ensureIcxBalance(txHandler, helloScore.getAddress(), BigInteger.ZERO, ICX.multiply(BigInteger.ONE));
+        ensureIcxBalance(txHandler, multiSigWalletAddress, ICX.multiply(THREE), ICX.multiply(TWO));
+        ensureIcxBalance(txHandler, helloScore.getAddress(), BigInteger.ZERO, ICX.multiply(BigInteger.ONE));
         LOG.infoExiting();
 
         // *** 3. Send a test transaction (this will not be executed intentionally)
