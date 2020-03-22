@@ -34,7 +34,6 @@ import java.io.IOException;
 import java.math.BigInteger;
 
 import static foundation.icon.test.Env.LOG;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class CrowdsaleTest extends TestBase {
     private static TransactionHandler txHandler;
@@ -112,7 +111,7 @@ public class CrowdsaleTest extends TestBase {
             throw new IOException("Failed to execute safeWithdrawal.");
         }
         BigInteger amount = ICX.multiply(BigInteger.valueOf(100));
-        tokenScore.ensureFundTransfer(result, crowdsaleScore.getAddress(), ownerWallet.getAddress(), amount);
+        crowdsaleScore.ensureFundTransfer(result, ownerWallet.getAddress(), amount);
 
         // check the final icx balance of owner
         LOG.info("ICX balance before safeWithdrawal: " + oldBal);

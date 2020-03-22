@@ -20,14 +20,12 @@ import foundation.icon.icx.Wallet;
 import foundation.icon.icx.data.Address;
 import foundation.icon.icx.data.Bytes;
 import foundation.icon.icx.data.IconAmount;
-import foundation.icon.icx.data.TransactionResult;
 import foundation.icon.icx.transport.jsonrpc.RpcObject;
 import foundation.icon.icx.transport.jsonrpc.RpcValue;
 import foundation.icon.test.Constants;
 import foundation.icon.test.ResultTimeoutException;
 import foundation.icon.test.TransactionFailureException;
 import foundation.icon.test.TransactionHandler;
-import foundation.icon.test.Utils;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -93,19 +91,5 @@ public class SampleTokenScore extends Score {
                 .put("_value", new RpcValue(IconAmount.of(valueInIcx, 18).toLoop()))
                 .build();
         return this.invoke(fromWallet, "transfer", params);
-    }
-
-    public void ensureFundTransfer(TransactionResult result, Address scoreAddress,
-                                   Address backer, BigInteger amount) throws IOException {
-        TransactionResult.EventLog event = Utils.findEventLogWithFuncSig(result, scoreAddress, "FundTransfer(Address,int,bool)");
-        if (event != null) {
-            Address _backer = event.getIndexed().get(1).asAddress();
-            BigInteger _amount = event.getIndexed().get(2).asInteger();
-            Boolean isContribution = event.getIndexed().get(3).asBoolean();
-            if (backer.equals(_backer) && amount.equals(_amount) && !isContribution) {
-                return; // ensured
-            }
-        }
-        throw new IOException("ensureFundTransfer failed.");
     }
 }

@@ -92,4 +92,18 @@ public class CrowdSaleScore extends Score {
         }
         throw new IOException("ensureFundingGoal failed.");
     }
+
+    public void ensureFundTransfer(TransactionResult result, Address backer, BigInteger amount)
+            throws IOException {
+        TransactionResult.EventLog event = Utils.findEventLogWithFuncSig(result, getAddress(), "FundTransfer(Address,int,bool)");
+        if (event != null) {
+            Address _backer = event.getIndexed().get(1).asAddress();
+            BigInteger _amount = event.getIndexed().get(2).asInteger();
+            Boolean isContribution = event.getIndexed().get(3).asBoolean();
+            if (backer.equals(_backer) && amount.equals(_amount) && !isContribution) {
+                return; // ensured
+            }
+        }
+        throw new IOException("ensureFundTransfer failed.");
+    }
 }
