@@ -101,7 +101,9 @@ public class FeeSharingTest extends TestBase {
         // add deposit to SCORE
         BigInteger depositAmount = IconAmount.of("5000", IconAmount.Unit.ICX).toLoop();
         LOG.infoEntering("addDeposit", depositAmount.toString());
-        Bytes depositId = feeShareOwner.addDeposit(depositAmount);
+        result = feeShareOwner.addDeposit(depositAmount);
+        assertSuccess(result);
+        Bytes depositId = result.getTxHash();
         printDepositInfo(feeShareOwner.getAddress());
         LOG.infoExiting();
 
@@ -119,7 +121,8 @@ public class FeeSharingTest extends TestBase {
 
         // withdraw the deposit
         LOG.infoEntering("withdrawDeposit", depositId.toString());
-        feeShareOwner.withdrawDeposit(depositId);
+        result = feeShareOwner.withdrawDeposit(depositId);
+        assertSuccess(result);
         printDepositInfo(feeShareOwner.getAddress());
         LOG.infoExiting();
 

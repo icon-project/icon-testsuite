@@ -72,7 +72,7 @@ public class FeeShareScore extends Score {
                 null, STEPS);
     }
 
-    public Bytes addDeposit(BigInteger depositAmount)
+    public TransactionResult addDeposit(BigInteger depositAmount)
             throws IOException, ResultTimeoutException {
         Transaction transaction = TransactionBuilder.newBuilder()
                 .nid(getNetworkId())
@@ -84,14 +84,10 @@ public class FeeShareScore extends Score {
                 .add()
                 .build();
         Bytes txHash = invoke(wallet, transaction);
-        TransactionResult result = getResult(txHash);
-        if (!Constants.STATUS_SUCCESS.equals(result.getStatus())) {
-            throw new IOException("Add deposit failed!");
-        }
-        return txHash;
+        return getResult(txHash);
     }
 
-    public void withdrawDeposit(Bytes depositId)
+    public TransactionResult withdrawDeposit(Bytes depositId)
             throws IOException, ResultTimeoutException {
         Transaction transaction = TransactionBuilder.newBuilder()
                 .nid(BigInteger.valueOf(3))
@@ -102,9 +98,6 @@ public class FeeShareScore extends Score {
                 .withdraw(depositId)
                 .build();
         Bytes txHash = invoke(wallet, transaction);
-        TransactionResult result = getResult(txHash);
-        if (!Constants.STATUS_SUCCESS.equals(result.getStatus())) {
-            throw new IOException("Withdraw deposit failed!");
-        }
+        return getResult(txHash);
     }
 }
