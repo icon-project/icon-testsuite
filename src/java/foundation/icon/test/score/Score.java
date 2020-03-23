@@ -23,6 +23,7 @@ import foundation.icon.icx.Wallet;
 import foundation.icon.icx.data.Address;
 import foundation.icon.icx.data.Bytes;
 import foundation.icon.icx.data.TransactionResult;
+import foundation.icon.icx.data.TransactionResult.EventLog;
 import foundation.icon.icx.transport.jsonrpc.RpcItem;
 import foundation.icon.icx.transport.jsonrpc.RpcObject;
 import foundation.icon.test.Constants;
@@ -31,6 +32,7 @@ import foundation.icon.test.TransactionHandler;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.List;
 
 public class Score {
     private static final String SCORE_ROOT = "src/scores/";
@@ -48,6 +50,19 @@ public class Score {
 
     protected static String getFilePath(String pkgName) {
         return SCORE_ROOT + pkgName;
+    }
+
+    protected static EventLog findEventLog(TransactionResult result, Address scoreAddress, String funcSig) {
+        List<EventLog> eventLogs = result.getEventLogs();
+        for (EventLog event : eventLogs) {
+            if (event.getScoreAddress().equals(scoreAddress.toString())) {
+                String signature = event.getIndexed().get(0).asString();
+                if (funcSig.equals(signature)) {
+                    return event;
+                }
+            }
+        }
+        return null;
     }
 
     public RpcItem call(String method, RpcObject params)

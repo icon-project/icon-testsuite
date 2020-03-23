@@ -27,7 +27,6 @@ import foundation.icon.test.Constants;
 import foundation.icon.test.ResultTimeoutException;
 import foundation.icon.test.TransactionFailureException;
 import foundation.icon.test.TransactionHandler;
-import foundation.icon.test.Utils;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -70,7 +69,7 @@ public class CrowdSaleScore extends Score {
             if (!Constants.STATUS_SUCCESS.equals(result.getStatus())) {
                 throw new IOException("Failed to execute checkGoalReached.");
             }
-            TransactionResult.EventLog event = Utils.findEventLogWithFuncSig(result, getAddress(), "GoalReached(Address,int)");
+            TransactionResult.EventLog event = findEventLog(result, getAddress(), "GoalReached(Address,int)");
             if (event != null) {
                 break;
             }
@@ -82,7 +81,7 @@ public class CrowdSaleScore extends Score {
     public void ensureFundingGoal(Bytes txHash, BigInteger fundingGoalInIcx)
             throws IOException, ResultTimeoutException {
         TransactionResult result = getResult(txHash);
-        TransactionResult.EventLog event = Utils.findEventLogWithFuncSig(result, getAddress(), "CrowdsaleStarted(int,int)");
+        TransactionResult.EventLog event = findEventLog(result, getAddress(), "CrowdsaleStarted(int,int)");
         if (event != null) {
             BigInteger fundingGoalInLoop = IconAmount.of(fundingGoalInIcx, IconAmount.Unit.ICX).toLoop();
             BigInteger fundingGoalFromScore = event.getData().get(0).asInteger();
@@ -95,7 +94,7 @@ public class CrowdSaleScore extends Score {
 
     public void ensureFundTransfer(TransactionResult result, Address backer, BigInteger amount)
             throws IOException {
-        TransactionResult.EventLog event = Utils.findEventLogWithFuncSig(result, getAddress(), "FundTransfer(Address,int,bool)");
+        TransactionResult.EventLog event = findEventLog(result, getAddress(), "FundTransfer(Address,int,bool)");
         if (event != null) {
             Address _backer = event.getIndexed().get(1).asAddress();
             BigInteger _amount = event.getIndexed().get(2).asInteger();
