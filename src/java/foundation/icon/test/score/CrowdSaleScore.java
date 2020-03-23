@@ -18,7 +18,6 @@ package foundation.icon.test.score;
 
 import foundation.icon.icx.Wallet;
 import foundation.icon.icx.data.Address;
-import foundation.icon.icx.data.Bytes;
 import foundation.icon.icx.data.IconAmount;
 import foundation.icon.icx.data.TransactionResult;
 import foundation.icon.icx.transport.jsonrpc.RpcObject;
@@ -78,14 +77,13 @@ public class CrowdSaleScore extends Score {
         }
     }
 
-    public void ensureFundingGoal(Bytes txHash, BigInteger fundingGoalInIcx)
-            throws IOException, ResultTimeoutException {
-        TransactionResult result = getResult(txHash);
+    public void ensureFundingGoal(TransactionResult result, BigInteger fundingGoalInIcx)
+            throws IOException {
         TransactionResult.EventLog event = findEventLog(result, getAddress(), "CrowdsaleStarted(int,int)");
         if (event != null) {
             BigInteger fundingGoalInLoop = IconAmount.of(fundingGoalInIcx, IconAmount.Unit.ICX).toLoop();
             BigInteger fundingGoalFromScore = event.getData().get(0).asInteger();
-            if (fundingGoalInLoop.compareTo(fundingGoalFromScore) == 0) {
+            if (fundingGoalInLoop.equals(fundingGoalFromScore)) {
                 return; // ensured
             }
         }

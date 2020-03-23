@@ -81,8 +81,8 @@ public class CrowdsaleTest extends TestBase {
 
         // transfer all tokens to crowdsale score
         LOG.infoEntering("transfer token", "all tokens to crowdsale score from owner");
-        Bytes txHash = tokenScore.transfer(ownerWallet, crowdsaleScore.getAddress(), initialSupply);
-        crowdsaleScore.ensureFundingGoal(txHash, fundingGoalInIcx);
+        TransactionResult result = tokenScore.transfer(ownerWallet, crowdsaleScore.getAddress(), ICX.multiply(initialSupply));
+        crowdsaleScore.ensureFundingGoal(result, fundingGoalInIcx);
         tokenScore.ensureTokenBalance(crowdsaleScore.getAddress(), initialSupply.longValue());
         LOG.infoExiting();
 
@@ -106,7 +106,7 @@ public class CrowdsaleTest extends TestBase {
         // do safe withdrawal
         LOG.infoEntering("call", "safeWithdrawal()");
         BigInteger oldBal = txHandler.getBalance(ownerWallet.getAddress());
-        TransactionResult result = crowdsaleScore.safeWithdrawal(ownerWallet);
+        result = crowdsaleScore.safeWithdrawal(ownerWallet);
         if (!Constants.STATUS_SUCCESS.equals(result.getStatus())) {
             throw new IOException("Failed to execute safeWithdrawal.");
         }
