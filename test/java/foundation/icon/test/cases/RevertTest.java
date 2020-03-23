@@ -43,7 +43,7 @@ public class RevertTest extends TestBase {
     }
 
     @Test
-    public void testAll() throws Exception {
+    public void runTest() throws Exception {
         KeyWallet ownerWallet = KeyWallet.create();
         // deposit initial balance for the owner
         BigInteger amount = ICX.multiply(BigInteger.valueOf(30));
@@ -72,7 +72,7 @@ public class RevertTest extends TestBase {
         LOG.infoEntering("call", score2 + ".setStepOf(" + score1 + "," + v + ")");
         txr = score2.setStepOf(ownerWallet, score1.getAddress(), v);
         assertSuccess(txr);
-        LOG.infoExiting("Result:" + txr);
+        LOG.infoExiting();
 
         v1 = score1.getStep(ownerWallet.getAddress());
         assertEquals(v, v1);
@@ -80,7 +80,7 @@ public class RevertTest extends TestBase {
         LOG.infoEntering("call", score2 + ".setStepOf(" + score1 + "," + v + ")");
         txr = score2.setStepOf(ownerWallet, score1.getAddress(), v);
         assertFailure(txr);
-        LOG.infoExiting("Result:" + txr);
+        LOG.infoExiting();
 
         LOG.infoEntering("call", score1 + ".getStep()");
         v1 = score1.getStep(ownerWallet.getAddress());
@@ -94,7 +94,7 @@ public class RevertTest extends TestBase {
         LOG.infoEntering("call", score1 + ".trySetStepWith(" + score2 + "," + v + ")");
         txr = score1.trySetStepWith(ownerWallet, score2.getAddress(), v);
         assertSuccess(txr);
-        LOG.infoExiting("Result:" + txr);
+        LOG.infoExiting();
 
         LOG.infoEntering("call", score2 + ".getStep()");
         v2new = score2.getStep(ownerWallet.getAddress());
