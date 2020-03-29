@@ -48,7 +48,7 @@ public class Score {
         this(other.txHandler, other.address);
     }
 
-    protected static String getFilePath(String pkgName) {
+    public static String getFilePath(String pkgName) {
         return SCORE_ROOT + pkgName;
     }
 

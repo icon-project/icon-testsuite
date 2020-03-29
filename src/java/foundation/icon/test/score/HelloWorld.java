@@ -17,6 +17,8 @@
 package foundation.icon.test.score;
 
 import foundation.icon.icx.Wallet;
+import foundation.icon.icx.transport.jsonrpc.RpcObject;
+import foundation.icon.icx.transport.jsonrpc.RpcValue;
 import foundation.icon.test.ResultTimeoutException;
 import foundation.icon.test.TransactionFailureException;
 import foundation.icon.test.TransactionHandler;
@@ -30,6 +32,14 @@ public class HelloWorld extends Score {
 
     public static HelloWorld install(TransactionHandler txHandler, Wallet wallet)
             throws TransactionFailureException, ResultTimeoutException, IOException {
-        return new HelloWorld(txHandler.deploy(wallet, getFilePath("hello_world"), null));
+        RpcObject params = new RpcObject.Builder()
+                .put("name", new RpcValue("HelloWorld"))
+                .build();
+        return install(txHandler, wallet, params);
+    }
+
+    public static HelloWorld install(TransactionHandler txHandler, Wallet wallet, RpcObject params)
+            throws TransactionFailureException, ResultTimeoutException, IOException {
+        return new HelloWorld(txHandler.deploy(wallet, getFilePath("hello_world"), params));
     }
 }

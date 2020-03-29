@@ -2,25 +2,32 @@ from iconservice import *
 
 TAG = 'HelloWorld'
 
+
 class HelloWorld(IconScoreBase):
+    _NAME = 'name'
 
     def __init__(self, db: IconScoreDatabase) -> None:
         super().__init__(db)
+        self._name = VarDB(self._NAME, db, value_type=str)
 
-    def on_install(self) -> None:
+    def on_install(self, name: str) -> None:
         super().on_install()
+        self._name.set(name)
+        Logger.info(f"on_install: name={name}", TAG)
 
-    def on_update(self) -> None:
+    def on_update(self, name: str) -> None:
         super().on_update()
+        self._name.set(name)
+        Logger.info(f"on_update: name={name}", TAG)
 
     @external(readonly=True)
     def name(self) -> str:
-        return "HelloWorld"
+        return self._name.get()
 
     @external(readonly=True)
     def hello(self) -> str:
         Logger.info('Hello, world!', TAG)
-        return "Hello"
+        return "Hello, world!"
 
     @payable
     def fallback(self):

@@ -23,6 +23,8 @@ import org.opentest4j.AssertionFailedError;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
 
 import static foundation.icon.test.Env.LOG;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -53,6 +55,17 @@ public class TestBase {
             throws IOException, ResultTimeoutException {
         Bytes txHash = txHandler.transfer(to, amount);
         assertSuccess(txHandler.getResult(txHash));
+    }
+
+    protected static void transferAndCheckResult(TransactionHandler txHandler, Address[] addresses, BigInteger amount)
+            throws IOException, ResultTimeoutException {
+        List<Bytes> hashes = new ArrayList<>();
+        for (Address to : addresses) {
+            hashes.add(txHandler.transfer(to, amount));
+        }
+        for (Bytes hash : hashes) {
+            assertSuccess(txHandler.getResult(hash));
+        }
     }
 
     protected static void ensureIcxBalance(TransactionHandler txHandler, Address address,
