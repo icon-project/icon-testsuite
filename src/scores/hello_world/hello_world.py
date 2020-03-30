@@ -36,3 +36,8 @@ class HelloWorld(IconScoreBase):
     @external
     def tokenFallback(self, _from: Address, _value: int, _data: bytes):
         Logger.info('tokenFallback is called', TAG)
+
+    @external
+    def transferICX(self, to: Address, amount: int):
+        if amount > 0:
+            self.icx.transfer(to, amount)
