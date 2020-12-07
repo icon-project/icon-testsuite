@@ -90,7 +90,7 @@ public class FeeShareScore extends Score {
     public TransactionResult withdrawDeposit(Bytes depositId)
             throws IOException, ResultTimeoutException {
         Transaction transaction = TransactionBuilder.newBuilder()
-                .nid(BigInteger.valueOf(3))
+                .nid(getNetworkId())
                 .from(wallet.getAddress())
                 .to(getAddress())
                 .stepLimit(STEPS)
