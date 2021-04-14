@@ -138,7 +138,7 @@ public class TransactionHandler {
             try {
                 return iconService.getTransactionResult(txHash).execute();
             } catch (RpcError e) {
-                if (e.getCode() == -32602) { // pending
+                if (e.getCode() == -31002 || e.getCode() == -31003) { // pending or executing
                     if (limitTime < System.currentTimeMillis()) {
                         throw new ResultTimeoutException(txHash);
                     }
@@ -151,7 +151,6 @@ public class TransactionHandler {
                     }
                     continue;
                 }
-                LOG.warning("RpcError: code(" + e.getCode() + ") message(" + e.getMessage() + "); Retry in 1 sec.");
                 throw e;
             }
         }

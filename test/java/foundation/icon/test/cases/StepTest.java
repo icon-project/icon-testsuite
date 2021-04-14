@@ -51,7 +51,7 @@ public class StepTest extends TestBase {
     private static TransactionHandler txHandler;
     private static KeyWallet[] testWallets;
 
-    private static final BigInteger STEP_PRICE = BigInteger.valueOf(10_000_000_000L);
+    private static final BigInteger STEP_PRICE = BigInteger.valueOf(12_500_000_000L);
     private static final int TYPE_INT = 0;
     private static final int TYPE_STR = 1;
     private static final int TYPE_BYTES = 2;
@@ -70,7 +70,7 @@ public class StepTest extends TestBase {
             testWallets[i] = wallet;
             addresses[i] = wallet.getAddress();
         }
-        transferAndCheckResult(txHandler, addresses, ICX.multiply(BigInteger.valueOf(30)));
+        transferAndCheckResult(txHandler, addresses, ICX.multiply(BigInteger.valueOf(50)));
     }
 
     private enum StepType {

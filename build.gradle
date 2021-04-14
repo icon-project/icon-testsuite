@@ -9,6 +9,9 @@ java {
 
 repositories {
     mavenCentral()
+    maven {
+        url 'https://oss.jfrog.org/artifactory/oss-snapshot-local'
+    }
 }
 
 sourceSets {
@@ -17,7 +20,7 @@ sourceSets {
 }
 
 dependencies {
-    implementation 'foundation.icon:icon-sdk:0.9.15'
+    implementation 'foundation.icon:icon-sdk:2.0.0-SNAPSHOT'
     implementation "com.squareup.okhttp3:okhttp:3.11.0"
     implementation "com.squareup.okhttp3:logging-interceptor:3.11.0"
     testImplementation "org.junit.jupiter:junit-jupiter:5.4.2"
