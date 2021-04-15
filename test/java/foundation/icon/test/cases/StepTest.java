@@ -40,7 +40,6 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 
 import static foundation.icon.test.Env.LOG;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -101,7 +100,6 @@ public class StepTest extends TestBase {
     private static class StepTransaction {
         private BigInteger expectedStep;
         private BigInteger usedFee;
-        private BigInteger treasuryFee;
         private Address scoreAddr;
 
         BigInteger expectedStep() {
@@ -114,10 +112,6 @@ public class StepTest extends TestBase {
 
         BigInteger getUsedFee() {
             return usedFee;
-        }
-
-        BigInteger getTreasuryFee() {
-            return treasuryFee;
         }
 
         public Address getScoreAddress() {
@@ -221,7 +215,6 @@ public class StepTest extends TestBase {
         }
 
         BigInteger transfer(KeyWallet from, Address to, BigInteger value, String msg) throws Exception {
-            BigInteger prevTreasury = txHandler.getBalance(Constants.TREASURY_ADDRESS);
             BigInteger prevBal = txHandler.getBalance(from.getAddress());
             TransactionBuilder.Builder builder = TransactionBuilder.newBuilder()
                     .nid(txHandler.getNetworkId())
@@ -236,11 +229,10 @@ public class StepTest extends TestBase {
             this.expectedStep = calcTransactionStep(transaction);
             Bytes txHash = txHandler.invoke(from, transaction);
             assertSuccess(txHandler.getResult(txHash));
-            return getUsedFee(from, value, prevTreasury, prevBal);
+            return getUsedFee(from, value, prevBal);
         }
 
         BigInteger deploy(KeyWallet from, Address to, String contentPath, RpcObject params) throws Exception {
-            BigInteger prevTreasury = txHandler.getBalance(Constants.TREASURY_ADDRESS);
             BigInteger prevBal = txHandler.getBalance(from.getAddress());
             byte[] content = ZipFile.zipContent(contentPath);
             if (to == null) {
@@ -259,11 +251,10 @@ public class StepTest extends TestBase {
             TransactionResult result = txHandler.getResult(txHash);
             assertSuccess(result);
             this.scoreAddr = new Address(result.getScoreAddress());
-            return getUsedFee(from, BigInteger.ZERO, prevTreasury, prevBal);
+            return getUsedFee(from, BigInteger.ZERO, prevBal);
         }
 
         BigInteger call(KeyWallet from, Address to, String method, RpcObject params, BigInteger stepLimit) throws Exception {
-            BigInteger prevTreasury = txHandler.getBalance(Constants.TREASURY_ADDRESS);
             BigInteger prevBal = txHandler.getBalance(from.getAddress());
             TransactionBuilder.Builder builder = TransactionBuilder.newBuilder()
                     .nid(txHandler.getNetworkId())
@@ -280,7 +271,7 @@ public class StepTest extends TestBase {
 
             Bytes txHash = txHandler.invoke(from, transaction);
             TransactionResult result = txHandler.getResult(txHash);
-            usedFee = getUsedFee(from, BigInteger.ZERO, prevTreasury, prevBal);
+            usedFee = getUsedFee(from, BigInteger.ZERO, prevBal);
             if (!Constants.STATUS_SUCCESS.equals(result.getStatus())) {
                 LOG.info("Expected " + result.getFailure());
                 throw new TransactionFailureException(result.getFailure());
@@ -288,11 +279,9 @@ public class StepTest extends TestBase {
             return usedFee;
         }
 
-        private BigInteger getUsedFee(KeyWallet from, BigInteger value, BigInteger prevTreasury, BigInteger prevBal)
+        private BigInteger getUsedFee(KeyWallet from, BigInteger value, BigInteger prevBal)
                 throws IOException {
-            BigInteger treasury = txHandler.getBalance(Constants.TREASURY_ADDRESS);
             BigInteger bal = txHandler.getBalance(from.getAddress());
-            treasuryFee = treasury.subtract(prevTreasury);
             return prevBal.subtract(bal.add(value));
         }
     }
@@ -305,14 +294,12 @@ public class StepTest extends TestBase {
         BigInteger usedFee = stx.transfer(testWallets[0], testWallets[1].getAddress(), ICX, null);
         assertEquals(usedFee, StepType.DEFAULT.getSteps().multiply(STEP_PRICE));
         assertEquals(stx.expectedFee(), usedFee);
-        assertEquals(stx.expectedFee(), stx.getTreasuryFee());
         LOG.infoExiting();
 
         LOG.infoEntering("transfer", "with message");
         usedFee = stx.transfer(testWallets[0], testWallets[2].getAddress(), ICX.multiply(BigInteger.valueOf(2)), "Hello");
         assertTrue(usedFee.compareTo(StepType.DEFAULT.getSteps().multiply(STEP_PRICE)) > 0);
         assertEquals(stx.expectedFee(), usedFee);
-        assertEquals(stx.expectedFee(), stx.getTreasuryFee());
         LOG.infoExiting();
         LOG.infoExiting();
     }
@@ -371,7 +358,6 @@ public class StepTest extends TestBase {
         BigInteger usedFee = stx.deploy(testWallets[0], null, Score.getFilePath("hello_world"), params);
         LOG.infoExiting();
         assertEquals(stx.expectedFee(), usedFee);
-        assertEquals(stx.expectedFee(), stx.getTreasuryFee());
 
         LOG.infoEntering("update", "helloWorld");
         Address scoreAddr = stx.getScoreAddress();
@@ -382,7 +368,6 @@ public class StepTest extends TestBase {
         usedFee = stx.deploy(testWallets[0], scoreAddr, Score.getFilePath("hello_world"), params);
         LOG.infoExiting();
         assertEquals(stx.expectedFee(), usedFee);
-        assertEquals(stx.expectedFee(), stx.getTreasuryFee());
         LOG.infoExiting();
     }
 
@@ -463,7 +448,6 @@ public class StepTest extends TestBase {
                     assertNotEquals(test, VarTest.VAR_EDGE);
                     stx.addOperation(test.stepType, i, val);
                     assertEquals(stx.expectedFee(), usedFee);
-                    assertEquals(stx.expectedFee(), stx.getTreasuryFee());
                     if (test == VarTest.VAR_REPLACE) {
                         edgeLimit[i] = stx.expectedStep();
                     }
@@ -481,7 +465,6 @@ public class StepTest extends TestBase {
                     LOG.info("dbVal[" + i + "] : " + dbVal);
                     assertEquals(updatedParams[i][1], dbVal);
                     assertEquals(STEP_PRICE.multiply(stepLimit), stx.getUsedFee());
-                    assertEquals(STEP_PRICE.multiply(stepLimit), stx.getTreasuryFee());
                 }
                 LOG.infoExiting();
             }
