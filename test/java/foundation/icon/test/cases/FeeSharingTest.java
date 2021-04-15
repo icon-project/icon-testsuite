@@ -30,7 +30,7 @@ import foundation.icon.test.Env;
 import foundation.icon.test.TestBase;
 import foundation.icon.test.TransactionHandler;
 import foundation.icon.test.score.FeeShareScore;
-import foundation.icon.test.score.GovScore;
+import foundation.icon.test.score.ChainScore;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -119,9 +119,17 @@ public class FeeSharingTest extends TestBase {
         printDepositInfo(feeShareOwner.getAddress());
         LOG.infoExiting();
 
-        // withdraw the deposit
-        LOG.infoEntering("withdrawDeposit", depositId.toString());
-        result = feeShareOwner.withdrawDeposit(depositId);
+        // withdraw the deposit #1
+        LOG.infoEntering("withdrawDeposit", "amount=2000");
+        BigInteger amount = IconAmount.of("2000", IconAmount.Unit.ICX).toLoop();
+        result = feeShareOwner.withdrawDeposit(amount);
+        assertSuccess(result);
+        printDepositInfo(feeShareOwner.getAddress());
+        LOG.infoExiting();
+
+        // withdraw the deposit #2
+        LOG.infoEntering("withdrawDeposit", "amount=all");
+        result = feeShareOwner.withdrawDeposit();
         assertSuccess(result);
         printDepositInfo(feeShareOwner.getAddress());
         LOG.infoExiting();
@@ -148,8 +156,8 @@ public class FeeSharingTest extends TestBase {
     }
 
     private void printDepositInfo(Address scoreAddress) throws IOException {
-        GovScore govScore = new GovScore(txHandler);
-        RpcItem status = govScore.getScoreStatus(scoreAddress);
+        ChainScore chainScore = new ChainScore(txHandler);
+        RpcItem status = chainScore.getScoreStatus(scoreAddress);
         RpcItem item = status.asObject().getItem("depositInfo");
         if (item != null) {
             LOG.info("depositInfo: {");
