@@ -2,11 +2,11 @@
 
 ## Quick Start
 
-Prepare a ICON node (either using a T-Bears docker image or running it as a standalone server) that accepts requests from the test framework.
+Prepare an ICON node (either using a `goloop/gochain-icon` docker image or running it as a standalone server) that accepts requests from the test framework.
 
-If you want to use the T-Bears docker image, start the container before running testing as follows.
+If you want to use the `goloop/gochain-icon` docker image, please refer to [gochain-local](https://github.com/icon-project/gochain-local) project.
 ```bach
-$ docker run -it -p 9000:9000 iconloop/tbears:mainnet
+$ ./run_gochain.sh start
 ```
 
 Run the all test cases.
