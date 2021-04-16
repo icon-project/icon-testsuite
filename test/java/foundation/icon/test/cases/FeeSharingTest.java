@@ -19,7 +19,6 @@ package foundation.icon.test.cases;
 import foundation.icon.icx.IconService;
 import foundation.icon.icx.KeyWallet;
 import foundation.icon.icx.data.Address;
-import foundation.icon.icx.data.Bytes;
 import foundation.icon.icx.data.IconAmount;
 import foundation.icon.icx.data.TransactionResult;
 import foundation.icon.icx.transport.http.HttpProvider;
@@ -27,17 +26,21 @@ import foundation.icon.icx.transport.jsonrpc.RpcArray;
 import foundation.icon.icx.transport.jsonrpc.RpcItem;
 import foundation.icon.icx.transport.jsonrpc.RpcObject;
 import foundation.icon.test.Env;
+import foundation.icon.test.EventLog;
 import foundation.icon.test.TestBase;
 import foundation.icon.test.TransactionHandler;
-import foundation.icon.test.score.FeeShareScore;
 import foundation.icon.test.score.ChainScore;
+import foundation.icon.test.score.FeeShareScore;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.List;
 
 import static foundation.icon.test.Env.LOG;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class FeeSharingTest extends TestBase {
     private static TransactionHandler txHandler;
@@ -62,13 +65,11 @@ public class FeeSharingTest extends TestBase {
         ensureIcxBalance(txHandler, aliceWallet.getAddress(), BigInteger.ZERO, ICX);
     }
 
-    private static BigInteger ensureIcxBalance(Address address, BigInteger val)
+    private static BigInteger ensureIcxBalance(Address address, BigInteger expected)
             throws IOException {
         BigInteger balance = txHandler.getBalance(address);
         LOG.info("ICX balance of " + address + ": " + balance);
-        if (balance.compareTo(val) != 0) {
-            throw new AssertionError("Balance changed!");
-        }
+        assertEquals(expected, balance);
         return balance;
     }
 
@@ -78,12 +79,14 @@ public class FeeSharingTest extends TestBase {
         FeeShareScore feeShareOwner = FeeShareScore.mustDeploy(txHandler, ownerWallet);
         LOG.info("scoreAddr = " + feeShareOwner.getAddress());
         LOG.info("value: " + feeShareOwner.getValue());
+        BigInteger ownerBalance = txHandler.getBalance(ownerWallet.getAddress());
         LOG.infoExiting();
 
         // add alice into the white list
         LOG.infoEntering("invoke", "addToWhitelist(alice)");
         TransactionResult result = feeShareOwner.addToWhitelist(aliceWallet.getAddress(), 100);
         assertSuccess(result);
+        ownerBalance = subtractFee(ownerBalance, result);
         LOG.infoExiting();
 
         // set value before adding deposit (user balance should be decreased)
@@ -98,13 +101,24 @@ public class FeeSharingTest extends TestBase {
         aliceBalance = ensureIcxBalance(aliceWallet.getAddress(), aliceBalance.subtract(fee));
         LOG.infoExiting();
 
-        // add deposit to SCORE
-        BigInteger depositAmount = IconAmount.of("5000", IconAmount.Unit.ICX).toLoop();
+        // add deposit 2000 to SCORE
+        BigInteger depositAmount = IconAmount.of("2000", IconAmount.Unit.ICX).toLoop();
         LOG.infoEntering("addDeposit", depositAmount.toString());
         result = feeShareOwner.addDeposit(depositAmount);
         assertSuccess(result);
-        Bytes depositId = result.getTxHash();
-        printDepositInfo(feeShareOwner.getAddress());
+        ownerBalance = subtractFee(ownerBalance.subtract(depositAmount), result);
+        printDepositInfo(feeShareOwner.getAddress(), true);
+        // check eventlog validity
+        assertTrue(EventLog.checkScenario(List.of(
+                new EventLog(feeShareOwner.getAddress().toString(),
+                        "DepositAdded(bytes,Address,int,int)",
+                        "0x", ownerWallet.getAddress().toString(),
+                        "0x" + depositAmount.toString(16), "0x0")),
+                result));
+        // check the owner balance
+        ensureIcxBalance(ownerWallet.getAddress(), ownerBalance);
+        // check the SCORE balance
+        ensureIcxBalance(feeShareOwner.getAddress(), BigInteger.ZERO);
         LOG.infoExiting();
 
         // set value after adding deposit (user balance should NOT be decreased)
@@ -114,24 +128,91 @@ public class FeeSharingTest extends TestBase {
         printStepUsedDetails(result.getStepUsedDetails());
         LOG.info("value: " + feeShareAlice.getValue());
         LOG.info("stepUsed: " + result.getStepUsed());
+
+        // get the fee
+        var stepUsedByScore = result.getStepUsed();
+        fee = stepUsedByScore.multiply(result.getStepPrice());
+
         // check if the balance was NOT changed
         aliceBalance = ensureIcxBalance(aliceWallet.getAddress(), aliceBalance);
-        printDepositInfo(feeShareOwner.getAddress());
+        printDepositInfo(feeShareOwner.getAddress(), true);
         LOG.infoExiting();
 
-        // withdraw the deposit #1
-        LOG.infoEntering("withdrawDeposit", "amount=2000");
-        BigInteger amount = IconAmount.of("2000", IconAmount.Unit.ICX).toLoop();
-        result = feeShareOwner.withdrawDeposit(amount);
+        // add another deposit 3000 to SCORE
+        BigInteger depositAmount2 = IconAmount.of("3000", IconAmount.Unit.ICX).toLoop();
+        LOG.infoEntering("addDeposit", depositAmount2.toString());
+        result = feeShareOwner.addDeposit(depositAmount2);
         assertSuccess(result);
-        printDepositInfo(feeShareOwner.getAddress());
+        ownerBalance = subtractFee(ownerBalance.subtract(depositAmount2), result);
+        printDepositInfo(feeShareOwner.getAddress(), true);
+        // check eventlog validity
+        assertTrue(EventLog.checkScenario(List.of(
+                new EventLog(feeShareOwner.getAddress().toString(),
+                        "DepositAdded(bytes,Address,int,int)",
+                        "0x", ownerWallet.getAddress().toString(),
+                        "0x" + depositAmount2.toString(16), "0x0")),
+                result));
+        // check the owner balance
+        ensureIcxBalance(ownerWallet.getAddress(), ownerBalance);
+        // check the SCORE balance
+        ensureIcxBalance(feeShareOwner.getAddress(), BigInteger.ZERO);
         LOG.infoExiting();
 
-        // withdraw the deposit #2
+        // withdraw the partial deposit
+        LOG.infoEntering("withdrawDeposit", "amount=2500");
+        var partialAmount = IconAmount.of("2500", IconAmount.Unit.ICX).toLoop();
+        result = feeShareOwner.withdrawDeposit(partialAmount);
+        assertSuccess(result);
+        ownerBalance = subtractFee(ownerBalance.add(partialAmount), result);
+        printDepositInfo(feeShareOwner.getAddress(), true);
+        // check eventlog validity
+        assertTrue(EventLog.checkScenario(List.of(
+                new EventLog(feeShareOwner.getAddress().toString(),
+                        "DepositWithdrawn(bytes,Address,int,int)",
+                        "0x", ownerWallet.getAddress().toString(),
+                        "0x" + partialAmount.toString(16), "0x0")),
+                result));
+        // check the owner balance
+        ensureIcxBalance(ownerWallet.getAddress(), ownerBalance);
+        // check the SCORE balance
+        ensureIcxBalance(feeShareOwner.getAddress(), BigInteger.ZERO);
+        LOG.infoExiting();
+
+        // set value after partial withdraw
+        LOG.infoEntering("invoke", "setValue() after partial withdraw");
+        result = feeShareAlice.setValue("alice #2-1");
+        assertSuccess(result);
+        printStepUsedDetails(result.getStepUsedDetails());
+        LOG.info("value: " + feeShareAlice.getValue());
+        LOG.info("stepUsed: " + result.getStepUsed());
+
+        // get the fee
+        stepUsedByScore = result.getStepUsed();
+        fee = fee.add(stepUsedByScore.multiply(result.getStepPrice()));
+
+        // check if the balance was NOT changed
+        aliceBalance = ensureIcxBalance(aliceWallet.getAddress(), aliceBalance);
+        printDepositInfo(feeShareOwner.getAddress(), true);
+        LOG.infoExiting();
+
+        // withdraw the whole deposit
         LOG.infoEntering("withdrawDeposit", "amount=all");
         result = feeShareOwner.withdrawDeposit();
         assertSuccess(result);
-        printDepositInfo(feeShareOwner.getAddress());
+        printDepositInfo(feeShareOwner.getAddress(), false);
+        // check eventlog validity
+        var depositRemain = depositAmount.add(depositAmount2).subtract(partialAmount).subtract(fee);
+        ownerBalance = subtractFee(ownerBalance.add(depositRemain), result);
+        assertTrue(EventLog.checkScenario(List.of(
+                new EventLog(feeShareOwner.getAddress().toString(),
+                        "DepositWithdrawn(bytes,Address,int,int)",
+                        "0x", ownerWallet.getAddress().toString(),
+                        "0x" + depositRemain.toString(16), "0x0")),
+                result));
+        // check the owner balance
+        ensureIcxBalance(ownerWallet.getAddress(), ownerBalance);
+        // check the SCORE balance
+        ensureIcxBalance(feeShareOwner.getAddress(), BigInteger.ZERO);
         LOG.infoExiting();
 
         // set value after withdrawing deposit (user balance should be decreased again)
@@ -145,6 +226,11 @@ public class FeeSharingTest extends TestBase {
         LOG.infoExiting();
     }
 
+    private BigInteger subtractFee(BigInteger balance, TransactionResult result) {
+        BigInteger fee = result.getStepUsed().multiply(result.getStepPrice());
+        return balance.subtract(fee);
+    }
+
     private void printStepUsedDetails(RpcItem stepUsedDetails) {
         RpcObject details = stepUsedDetails.asObject();
         LOG.info("stepUsedDetails: {");
@@ -155,10 +241,11 @@ public class FeeSharingTest extends TestBase {
         LOG.info("}");
     }
 
-    private void printDepositInfo(Address scoreAddress) throws IOException {
+    private void printDepositInfo(Address scoreAddress, boolean exist) throws IOException {
         ChainScore chainScore = new ChainScore(txHandler);
         RpcItem status = chainScore.getScoreStatus(scoreAddress);
         RpcItem item = status.asObject().getItem("depositInfo");
+        assertEquals(exist, item != null);
         if (item != null) {
             LOG.info("depositInfo: {");
             RpcObject info = item.asObject();
