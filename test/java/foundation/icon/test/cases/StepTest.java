@@ -34,6 +34,7 @@ import foundation.icon.test.TransactionHandler;
 import foundation.icon.test.score.HelloWorld;
 import foundation.icon.test.score.Score;
 import foundation.icon.test.util.ZipFile;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -70,6 +71,13 @@ public class StepTest extends TestBase {
             addresses[i] = wallet.getAddress();
         }
         transferAndCheckResult(txHandler, addresses, ICX.multiply(BigInteger.valueOf(50)));
+    }
+
+    @AfterAll
+    static void shutdown() throws Exception {
+        for (KeyWallet wallet : testWallets) {
+            txHandler.refundAll(wallet);
+        }
     }
 
     private enum StepType {

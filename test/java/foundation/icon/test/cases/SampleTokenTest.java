@@ -24,6 +24,7 @@ import foundation.icon.test.Env;
 import foundation.icon.test.TestBase;
 import foundation.icon.test.TransactionHandler;
 import foundation.icon.test.score.SampleTokenScore;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -47,6 +48,11 @@ public class SampleTokenTest extends TestBase {
         BigInteger amount = ICX.multiply(BigInteger.valueOf(30));
         txHandler.transfer(ownerWallet.getAddress(), amount);
         ensureIcxBalance(txHandler, ownerWallet.getAddress(), BigInteger.ZERO, amount);
+    }
+
+    @AfterAll
+    static void shutdown() throws Exception {
+        txHandler.refundAll(ownerWallet);
     }
 
     @Test

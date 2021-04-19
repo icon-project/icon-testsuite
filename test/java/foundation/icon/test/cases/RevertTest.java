@@ -105,5 +105,7 @@ public class RevertTest extends TestBase {
         v1new = score1.getStep(ownerWallet.getAddress());
         assertEquals(v, v1new);
         LOG.infoExiting(v1new.toString());
+
+        txHandler.refundAll(ownerWallet);
     }
 }

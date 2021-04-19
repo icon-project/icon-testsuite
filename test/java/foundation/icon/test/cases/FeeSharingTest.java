@@ -31,6 +31,7 @@ import foundation.icon.test.TestBase;
 import foundation.icon.test.TransactionHandler;
 import foundation.icon.test.score.ChainScore;
 import foundation.icon.test.score.FeeShareScore;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -63,6 +64,12 @@ public class FeeSharingTest extends TestBase {
         txHandler.transfer(aliceWallet.getAddress(), ICX);
         ensureIcxBalance(txHandler, ownerWallet.getAddress(), BigInteger.ZERO, ownerBalance);
         ensureIcxBalance(txHandler, aliceWallet.getAddress(), BigInteger.ZERO, ICX);
+    }
+
+    @AfterAll
+    static void shutdown() throws Exception {
+        txHandler.refundAll(ownerWallet);
+        txHandler.refundAll(aliceWallet);
     }
 
     private static BigInteger ensureIcxBalance(Address address, BigInteger expected)

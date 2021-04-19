@@ -30,6 +30,7 @@ import foundation.icon.icx.data.TransactionResult;
 import foundation.icon.icx.transport.jsonrpc.RpcError;
 import foundation.icon.icx.transport.jsonrpc.RpcItem;
 import foundation.icon.icx.transport.jsonrpc.RpcObject;
+import foundation.icon.test.score.ChainScore;
 import foundation.icon.test.score.Score;
 import foundation.icon.test.util.ZipFile;
 
@@ -164,15 +165,29 @@ public class TransactionHandler {
     }
 
     public Bytes transfer(Wallet owner, Address to, BigInteger amount) throws IOException {
+        return transfer(owner, to, amount, null);
+    }
+
+    public Bytes transfer(Wallet owner, Address to, BigInteger amount, BigInteger steps) throws IOException {
         Transaction transaction = TransactionBuilder.newBuilder()
                 .nid(getNetworkId())
                 .from(owner.getAddress())
                 .to(to)
                 .value(amount)
-                .stepLimit(Constants.DEFAULT_STEPS)
                 .build();
-        SignedTransaction signedTransaction = new SignedTransaction(transaction, owner);
+        if (steps == null) {
+            steps = Constants.DEFAULT_STEPS;
+        }
+        SignedTransaction signedTransaction = new SignedTransaction(transaction, owner, steps);
         return iconService.sendTransaction(signedTransaction).execute();
+    }
+
+    public void refundAll(Wallet owner) throws IOException {
+        BigInteger defaultStep = BigInteger.valueOf(100000);
+        BigInteger stepPrice = new ChainScore(this).getStepPrice();
+        BigInteger remaining = getBalance(owner.getAddress());
+        BigInteger fee = defaultStep.multiply(stepPrice);
+        transfer(owner, chain.godWallet.getAddress(), remaining.subtract(fee), defaultStep);
     }
 
     public ConfirmedTransaction getTransaction(Bytes txHash) throws IOException {

@@ -27,6 +27,7 @@ import foundation.icon.test.TestBase;
 import foundation.icon.test.TransactionHandler;
 import foundation.icon.test.score.CrowdSaleScore;
 import foundation.icon.test.score.SampleTokenScore;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -37,6 +38,7 @@ import static foundation.icon.test.Env.LOG;
 
 public class CrowdsaleTest extends TestBase {
     private static TransactionHandler txHandler;
+    private static KeyWallet[] wallets;
     private static KeyWallet ownerWallet;
 
     @BeforeAll
@@ -44,12 +46,25 @@ public class CrowdsaleTest extends TestBase {
         Env.Chain chain = Env.getDefaultChain();
         IconService iconService = new IconService(new HttpProvider(chain.getEndpointURL(3)));
         txHandler = new TransactionHandler(iconService, chain);
-        ownerWallet = KeyWallet.create();
 
-        // transfer initial icx to owner address
+        // init wallets
+        wallets = new KeyWallet[3];
         BigInteger amount = ICX.multiply(BigInteger.valueOf(30));
-        txHandler.transfer(ownerWallet.getAddress(), amount);
-        ensureIcxBalance(txHandler, ownerWallet.getAddress(), BigInteger.ZERO, amount);
+        for (int i = 0; i < wallets.length; i++) {
+            wallets[i] = KeyWallet.create();
+            txHandler.transfer(wallets[i].getAddress(), amount);
+        }
+        for (KeyWallet wallet : wallets) {
+            ensureIcxBalance(txHandler, wallet.getAddress(), BigInteger.ZERO, amount);
+        }
+        ownerWallet = wallets[0];
+    }
+
+    @AfterAll
+    static void shutdown() throws Exception {
+        for (KeyWallet wallet : wallets) {
+            txHandler.refundAll(wallet);
+        }
     }
 
     @Test
@@ -70,8 +85,8 @@ public class CrowdsaleTest extends TestBase {
 
     void startCrowdsale(SampleTokenScore tokenScore, CrowdSaleScore crowdsaleScore,
                         BigInteger initialSupply, BigInteger fundingGoalInIcx) throws Exception {
-        KeyWallet aliceWallet = KeyWallet.create();
-        KeyWallet bobWallet = KeyWallet.create();
+        KeyWallet aliceWallet = wallets[1];
+        KeyWallet bobWallet = wallets[2];
 
         // send 50 icx to Alice, 100 to Bob
         LOG.infoEntering("transfer icx", "50 to Alice; 100 to Bob");
