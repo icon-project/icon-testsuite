@@ -99,8 +99,12 @@ public class TransactionHandler {
     }
 
     public Bytes deployOnly(Wallet owner, String scorePath, RpcObject params) throws IOException {
+        return deployOnly(owner, Constants.ZERO_ADDRESS, scorePath, params);
+    }
+
+    public Bytes deployOnly(Wallet owner, Address to, String scorePath, RpcObject params) throws IOException {
         byte[] data = ZipFile.zipContent(scorePath);
-        return doDeploy(owner, data, params, Constants.CONTENT_TYPE_PYTHON);
+        return doDeploy(owner, data, to, params, Constants.DEFAULT_INSTALL_STEPS, Constants.CONTENT_TYPE_PYTHON);
     }
 
     public Env.Chain getChain() {

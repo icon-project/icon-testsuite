@@ -49,7 +49,7 @@ public class CrowdsaleTest extends TestBase {
 
         // init wallets
         wallets = new KeyWallet[3];
-        BigInteger amount = ICX.multiply(BigInteger.valueOf(30));
+        BigInteger amount = ICX.multiply(BigInteger.valueOf(50));
         for (int i = 0; i < wallets.length; i++) {
             wallets[i] = KeyWallet.create();
             txHandler.transfer(wallets[i].getAddress(), amount);

@@ -46,7 +46,7 @@ public class RevertTest extends TestBase {
     public void runTest() throws Exception {
         KeyWallet ownerWallet = KeyWallet.create();
         // deposit initial balance for the owner
-        BigInteger amount = ICX.multiply(BigInteger.valueOf(30));
+        BigInteger amount = ICX.multiply(BigInteger.valueOf(50));
         txHandler.transfer(ownerWallet.getAddress(), amount);
         ensureIcxBalance(txHandler, ownerWallet.getAddress(), BigInteger.ZERO, amount);
 
