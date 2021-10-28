@@ -25,7 +25,7 @@ import foundation.icon.icx.transport.jsonrpc.RpcItem;
 import foundation.icon.test.Env;
 import foundation.icon.test.TestBase;
 import foundation.icon.test.TransactionHandler;
-import foundation.icon.test.score.HelloWorld;
+import foundation.icon.test.score.HelloWorldScore;
 import foundation.icon.test.score.MultiSigWalletScore;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -117,7 +117,7 @@ public class MultiSigWalletTest extends TestBase {
         LOG.infoEntering("call", "submitIcxTransaction() - send 1 icx to hello");
         // deploy another sample score to accept icx
         LOG.info("deploy: HelloWorld");
-        HelloWorld helloScore = HelloWorld.install(txHandler, ownerWallet);
+        HelloWorldScore helloScore = HelloWorldScore.install(txHandler, ownerWallet);
         // tx is initiated by ownerWallet first
         result = multiSigWalletScore.submitIcxTransaction(
                 ownerWallet, helloScore.getAddress(), ICX.multiply(BigInteger.ONE), "send 1 icx to hello");

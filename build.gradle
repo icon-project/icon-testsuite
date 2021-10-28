@@ -1,14 +1,14 @@
-plugins {
-    id 'java'
-}
+allprojects {
+    apply plugin: 'java'
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
-}
+    java {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
 
-repositories {
-    mavenCentral()
+    repositories {
+        mavenCentral()
+    }
 }
 
 sourceSets {
@@ -17,7 +17,11 @@ sourceSets {
 }
 
 dependencies {
+    implementation project(':javascore')
     implementation 'foundation.icon:icon-sdk:2.0.0'
+    implementation 'foundation.icon:javaee-api:0.9.0'
+    implementation 'foundation.icon:javaee-rt:0.9.0'
+    implementation 'foundation.icon:javaee-tooling:0.9.0'
     implementation "com.squareup.okhttp3:okhttp:3.11.0"
     implementation "com.squareup.okhttp3:logging-interceptor:3.11.0"
     testImplementation "org.junit.jupiter:junit-jupiter:5.4.2"

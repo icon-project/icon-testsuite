@@ -31,7 +31,7 @@ import foundation.icon.test.Env;
 import foundation.icon.test.TestBase;
 import foundation.icon.test.TransactionFailureException;
 import foundation.icon.test.TransactionHandler;
-import foundation.icon.test.score.HelloWorld;
+import foundation.icon.test.score.HelloWorldScore;
 import foundation.icon.test.score.Score;
 import foundation.icon.test.util.ZipFile;
 import org.junit.jupiter.api.AfterAll;
@@ -316,8 +316,8 @@ public class StepTest extends TestBase {
     public void transferFromScore() throws Exception {
         LOG.infoEntering("transferFromScore");
         LOG.infoEntering("deploy", "Scores");
-        Score fromScore = HelloWorld.install(txHandler, testWallets[1]);
-        Score toScore = HelloWorld.install(txHandler, testWallets[2]);
+        Score fromScore = HelloWorldScore.install(txHandler, testWallets[1]);
+        Score toScore = HelloWorldScore.install(txHandler, testWallets[2]);
         LOG.infoExiting();
         LOG.infoEntering("deposit", "initial funds");
         transferAndCheckResult(txHandler, fromScore.getAddress(), ICX.multiply(BigInteger.TEN));

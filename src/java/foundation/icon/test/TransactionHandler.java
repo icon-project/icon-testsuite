@@ -16,6 +16,7 @@
 
 package foundation.icon.test;
 
+import foundation.icon.ee.tooling.deploy.OptimizedJarBuilder;
 import foundation.icon.icx.Call;
 import foundation.icon.icx.IconService;
 import foundation.icon.icx.SignedTransaction;
@@ -33,6 +34,7 @@ import foundation.icon.icx.transport.jsonrpc.RpcObject;
 import foundation.icon.test.score.ChainScore;
 import foundation.icon.test.score.Score;
 import foundation.icon.test.util.ZipFile;
+import org.aion.avm.utilities.JarBuilder;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -70,6 +72,25 @@ public class TransactionHandler {
         return getScore(doDeploy(owner, data, to, params, steps, Constants.CONTENT_TYPE_PYTHON));
     }
 
+    public Score deploy(Wallet owner, Class<?> mainClass, RpcObject params)
+            throws IOException, ResultTimeoutException, TransactionFailureException {
+        return deploy(owner, new Class<?>[]{mainClass}, params);
+    }
+
+    public Score deploy(Wallet owner, Class<?>[] classes, RpcObject params)
+            throws IOException, ResultTimeoutException, TransactionFailureException {
+        byte[] jar = makeJar(classes[0].getName(), classes);
+        return getScore(doDeploy(owner, jar, params, Constants.CONTENT_TYPE_JAVA));
+    }
+
+    public byte[] makeJar(String name, Class<?>[] classes) {
+        byte[] jarBytes = JarBuilder.buildJarForExplicitMainAndClasses(name, classes);
+        return new OptimizedJarBuilder(false, jarBytes, true)
+                .withUnreachableMethodRemover()
+                .withRenamer()
+                .getOptimizedBytes();
+    }
+
     private Bytes doDeploy(Wallet owner, byte[] content, RpcObject params, String contentType)
             throws IOException {
         return doDeploy(owner, content, Constants.ZERO_ADDRESS, params, Constants.DEFAULT_INSTALL_STEPS, contentType);
@@ -81,11 +102,13 @@ public class TransactionHandler {
                 .nid(getNetworkId())
                 .from(owner.getAddress())
                 .to(to)
-                .stepLimit(steps)
                 .deploy(contentType, content)
                 .params(params)
                 .build();
-        SignedTransaction signedTransaction = new SignedTransaction(transaction, owner);
+        if (steps == null) {
+            steps = estimateStep(transaction);
+        }
+        SignedTransaction signedTransaction = new SignedTransaction(transaction, owner, steps);
         return iconService.sendTransaction(signedTransaction).execute();
     }
 
@@ -121,6 +144,15 @@ public class TransactionHandler {
 
     public List<ScoreApi> getScoreApi(Address scoreAddress) throws IOException {
         return iconService.getScoreApi(scoreAddress).execute();
+    }
+
+    public BigInteger estimateStep(Transaction transaction) throws IOException {
+        try {
+            return iconService.estimateStep(transaction).execute();
+        } catch (RpcError e) {
+            LOG.info("estimateStep failed(" + e.getCode() + ", " + e.getMessage() + "); use default steps.");
+            return Constants.DEFAULT_STEPS;
+        }
     }
 
     public RpcItem call(Call<RpcItem> call) throws IOException {

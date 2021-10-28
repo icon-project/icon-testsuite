@@ -33,4 +33,5 @@ public class Constants {
     public static final Address TREASURY_ADDRESS =
             new Address("hx1000000000000000000000000000000000000000");
     public static final String CONTENT_TYPE_PYTHON = "application/zip";
+    public static final String CONTENT_TYPE_JAVA = "application/java";
 }
