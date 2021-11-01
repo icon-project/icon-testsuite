@@ -16,8 +16,12 @@
 
 package foundation.icon.test.score;
 
+import com.iconloop.score.token.irc2.IRC2;
+import com.iconloop.score.token.irc2.IRC2Basic;
+import contract.IRC2BasicToken;
 import foundation.icon.icx.Wallet;
 import foundation.icon.icx.data.Address;
+import foundation.icon.icx.data.Bytes;
 import foundation.icon.icx.data.TransactionResult;
 import foundation.icon.icx.transport.jsonrpc.RpcObject;
 import foundation.icon.icx.transport.jsonrpc.RpcValue;
@@ -33,24 +37,53 @@ import java.util.Arrays;
 import static foundation.icon.test.Env.LOG;
 
 public class SampleTokenScore extends Score {
+    private static final Class<?>[] javaTokenClasses = new Class<?>[]{
+            IRC2BasicToken.class, IRC2Basic.class, IRC2.class};
+
     public static SampleTokenScore mustDeploy(TransactionHandler txHandler, Wallet owner,
                                               BigInteger decimals, BigInteger initialSupply)
             throws ResultTimeoutException, TransactionFailureException, IOException {
+        return mustDeploy(txHandler, owner, decimals, initialSupply, Constants.CONTENT_TYPE_PYTHON);
+    }
+
+    public static SampleTokenScore mustDeploy(TransactionHandler txHandler, Wallet owner,
+                                              BigInteger decimals, BigInteger initialSupply, String contentType)
+            throws ResultTimeoutException, TransactionFailureException, IOException {
         LOG.infoEntering("deploy", "SampleToken");
-        RpcObject params = new RpcObject.Builder()
-                .put("_name", new RpcValue("MySampleToken"))
-                .put("_symbol", new RpcValue("MST"))
-                .put("_decimals", new RpcValue(decimals))
-                .put("_initialSupply", new RpcValue(initialSupply))
-                .build();
-        Score score = txHandler.deploy(owner, getFilePath("sample_token"), params);
+        Score score;
+        if (contentType.equals(Constants.CONTENT_TYPE_PYTHON)) {
+            score = txHandler.deploy(owner, getFilePath("sample_token"), getParams(decimals, initialSupply));
+        } else if (contentType.equals(Constants.CONTENT_TYPE_JAVA)) {
+            score = txHandler.deploy(owner, javaTokenClasses, getParams(decimals, initialSupply));
+        } else {
+            throw new IllegalArgumentException("Unknown content type");
+        }
         LOG.info("scoreAddr = " + score.getAddress());
         LOG.infoExiting();
         return new SampleTokenScore(score);
     }
 
+    private static RpcObject getParams(BigInteger decimals, BigInteger initialSupply) {
+        return new RpcObject.Builder()
+                .put("_name", new RpcValue("MySampleToken"))
+                .put("_symbol", new RpcValue("MST"))
+                .put("_decimals", new RpcValue(decimals))
+                .put("_initialSupply", new RpcValue(initialSupply))
+                .build();
+    }
+
     public SampleTokenScore(Score other) {
         super(other);
+    }
+
+    public Bytes updateToJavaScore(Wallet owner) throws IOException {
+        // the following params must not be overwritten when the Java score is updated
+        return updateScore(owner, javaTokenClasses, new RpcObject.Builder()
+                .put("_name", new RpcValue("MySampleToken Updated"))
+                .put("_symbol", new RpcValue("MST2"))
+                .put("_decimals", new RpcValue(BigInteger.ZERO))
+                .put("_initialSupply", new RpcValue(BigInteger.ZERO))
+                .build());
     }
 
     public BigInteger balanceOf(Address owner) throws IOException {

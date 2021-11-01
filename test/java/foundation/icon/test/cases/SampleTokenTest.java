@@ -45,7 +45,7 @@ public class SampleTokenTest extends TestBase {
         ownerWallet = KeyWallet.create();
 
         // deposit initial balance for the owner
-        BigInteger amount = ICX.multiply(BigInteger.valueOf(30));
+        BigInteger amount = ICX.multiply(BigInteger.valueOf(100));
         txHandler.transfer(ownerWallet.getAddress(), amount);
         ensureIcxBalance(txHandler, ownerWallet.getAddress(), BigInteger.ZERO, amount);
     }
@@ -101,6 +101,45 @@ public class SampleTokenTest extends TestBase {
         LOG.infoEntering("balanceOf", "owner");
         expected = totalSupply.subtract(expected);
         bal = tokenScore.balanceOf(ownerWallet.getAddress());
+        LOG.info("expected (" + expected + "), got (" + bal + ")");
+        assertEquals(expected, bal);
+        LOG.infoExiting();
+    }
+
+    @Test
+    public void updatePythonToJava() throws Exception {
+        // 1. deploy Python SCORE first
+        BigInteger decimals = BigInteger.valueOf(18);
+        BigInteger initialSupply = BigInteger.valueOf(1000);
+        SampleTokenScore tokenScore = SampleTokenScore.mustDeploy(txHandler, ownerWallet,
+                decimals, initialSupply);
+
+        BigInteger oneToken = BigInteger.TEN.pow(decimals.intValue());
+        BigInteger totalSupply = oneToken.multiply(initialSupply);
+
+        // 2. transfer before update
+        LOG.infoEntering("transfer", "10 tokens before update");
+        KeyWallet calleeWallet = KeyWallet.create();
+        BigInteger tenToken = oneToken.multiply(BigInteger.TEN);
+        TransactionResult result = tokenScore.transfer(ownerWallet, calleeWallet.getAddress(), tenToken);
+        tokenScore.ensureTransfer(result, ownerWallet.getAddress(), calleeWallet.getAddress(), tenToken, null);
+        LOG.infoExiting();
+
+        // 3. update to Java SCORE
+        LOG.infoEntering("deploy", "update to Java SCORE");
+        var hash = tokenScore.updateToJavaScore(ownerWallet);
+        assertSuccess(tokenScore.getResult(hash));
+        LOG.infoExiting();
+
+        // 4. check if name, symbol and totalSupply are unchanged
+        assertEquals("MySampleToken", tokenScore.call("name", null).asString());
+        assertEquals("MST", tokenScore.call("symbol", null).asString());
+        assertEquals(totalSupply, tokenScore.call("totalSupply", null).asInteger());
+
+        // 4. check balance of owner
+        LOG.infoEntering("balanceOf", "owner after update");
+        BigInteger expected = totalSupply.subtract(tenToken);
+        BigInteger bal = tokenScore.balanceOf(ownerWallet.getAddress());
         LOG.info("expected (" + expected + "), got (" + bal + ")");
         assertEquals(expected, bal);
         LOG.infoExiting();

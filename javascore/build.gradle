@@ -1,9 +1,6 @@
-dependencies {
-    implementation 'foundation.icon:javaee-api:0.9.0'
-}
-
 sourceSets {
     main.java.srcDirs = [
+        'irc2-token/src',
         'samples/src',
     ]
 }
