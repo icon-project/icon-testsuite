@@ -30,7 +30,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 
 public class StepCounterScore extends Score {
-    private static final BigInteger STEPS = BigInteger.valueOf(200000);
+    private static final BigInteger STEPS = BigInteger.valueOf(300000);
 
     public StepCounterScore(Score other) {
         super(other);

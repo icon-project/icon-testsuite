@@ -24,7 +24,7 @@ public class Constants {
     public static final BigInteger STATUS_SUCCESS = BigInteger.ONE;
     public static final BigInteger STATUS_FAILURE = BigInteger.ZERO;
 
-    public static final BigInteger DEFAULT_STEPS = BigInteger.valueOf(200000);
+    public static final BigInteger DEFAULT_STEPS = BigInteger.valueOf(300000);
     public static final BigInteger DEFAULT_INSTALL_STEPS = new BigInteger("80000000", 16);
     public static final long DEFAULT_WAITING_TIME = 7000;
 

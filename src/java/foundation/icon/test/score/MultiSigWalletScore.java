@@ -34,9 +34,8 @@ import java.util.List;
 import static foundation.icon.test.Env.LOG;
 
 public class MultiSigWalletScore extends Score {
-    private static final BigInteger STEPS = BigInteger.valueOf(300000);
-    private static final BigInteger STEPS_2 = BigInteger.valueOf(500000);
-    private static final BigInteger STEPS_3 = BigInteger.valueOf(700000);
+    private static final BigInteger STEPS = BigInteger.valueOf(400000);
+    private static final BigInteger STEPS_2 = BigInteger.valueOf(800000);
     private static final int MAX_OWNER_COUNT = 50;
 
     public MultiSigWalletScore(Score other) {
@@ -125,7 +124,7 @@ public class MultiSigWalletScore extends Score {
                 .put("_params", new RpcValue(methodParams))
                 .put("_description", new RpcValue(description))
                 .build();
-        return invokeAndWaitResult(fromWallet, "submitTransaction", params, STEPS_3);
+        return invokeAndWaitResult(fromWallet, "submitTransaction", params, STEPS_2);
     }
 
     public TransactionResult changeRequirement(Wallet fromWallet, int required, String description)
