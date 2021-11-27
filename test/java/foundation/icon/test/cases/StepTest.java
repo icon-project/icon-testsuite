@@ -31,6 +31,7 @@ import foundation.icon.test.Env;
 import foundation.icon.test.TestBase;
 import foundation.icon.test.TransactionFailureException;
 import foundation.icon.test.TransactionHandler;
+import foundation.icon.test.score.ChainScore;
 import foundation.icon.test.score.HelloWorldScore;
 import foundation.icon.test.score.Score;
 import foundation.icon.test.util.ZipFile;
@@ -41,6 +42,8 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
+import java.util.EnumSet;
+import java.util.Map;
 
 import static foundation.icon.test.Env.LOG;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -51,7 +54,10 @@ public class StepTest extends TestBase {
     private static TransactionHandler txHandler;
     private static KeyWallet[] testWallets;
 
-    private static final BigInteger STEP_PRICE = BigInteger.valueOf(12_500_000_000L);
+    private static BigInteger STEP_PRICE;
+    private static Map<String, BigInteger> STEP_COSTS;
+    private static BigInteger SCHEMA;
+
     private static final int TYPE_INT = 0;
     private static final int TYPE_STR = 1;
     private static final int TYPE_BYTES = 2;
@@ -71,6 +77,11 @@ public class StepTest extends TestBase {
             addresses[i] = wallet.getAddress();
         }
         transferAndCheckResult(txHandler, addresses, ICX.multiply(BigInteger.valueOf(50)));
+
+        ChainScore chainScore = new ChainScore(txHandler);
+        STEP_PRICE = chainScore.getStepPrice();
+        STEP_COSTS = chainScore.getStepCosts();
+        SCHEMA = STEP_COSTS.getOrDefault(StepType.SCHEMA.getName(), BigInteger.ZERO);
     }
 
     @AfterAll
@@ -80,11 +91,33 @@ public class StepTest extends TestBase {
         }
     }
 
+    private static boolean isSchemaZero() {
+        return SCHEMA.equals(BigInteger.ZERO);
+    }
+
+    private final static EnumSet<StepType> stepCostsV0 = EnumSet.of(
+            StepType.DEFAULT, StepType.CONTRACT_CALL,
+            StepType.CONTRACT_CREATE, StepType.CONTRACT_UPDATE,
+            StepType.CONTRACT_DESTRUCT, StepType.CONTRACT_SET,
+            StepType.GET, StepType.SET, StepType.REPLACE, StepType.DELETE,
+            StepType.INPUT, StepType.EVENTLOG, StepType.APICALL
+    );
+
+    private final static EnumSet<StepType> stepCostsV1 = EnumSet.of(
+            StepType.SCHEMA, StepType.DEFAULT, StepType.CONTRACT_CALL,
+            StepType.CONTRACT_CREATE, StepType.CONTRACT_UPDATE_V1, StepType.CONTRACT_SET_V1,
+            StepType.GET_V1, StepType.SET, StepType.DELETE, StepType.LOG,
+            StepType.GET_BASE, StepType.SET_BASE, StepType.DELETE_BASE, StepType.LOG_BASE,
+            StepType.INPUT, StepType.APICALL
+    );
+
     private enum StepType {
+        // Legacy
         DEFAULT("default", 100000),
         CONTRACT_CALL("contractCall", 25000),
         CONTRACT_CREATE("contractCreate", 1000000000),
         CONTRACT_UPDATE("contractUpdate", 1600000000),
+        CONTRACT_DESTRUCT("contractDestruct", -70000),
         CONTRACT_SET("contractSet", 30000),
         GET("get", 0),
         SET("set", 320),
@@ -92,7 +125,18 @@ public class StepTest extends TestBase {
         DELETE("delete", -240),
         INPUT("input", 200),
         EVENTLOG("eventLog", 100),
-        APICALL("apiCall", 10000);
+        APICALL("apiCall", 10000),
+
+        // Updated in schema v1
+        SCHEMA("schema", 1),
+        CONTRACT_UPDATE_V1("contractUpdate", 1000000000),
+        CONTRACT_SET_V1("contractSet", 15000),
+        GET_V1("get", 80),
+        GET_BASE("getBase", 3000),
+        SET_BASE("setBase", 10000),
+        DELETE_BASE("deleteBase", 200),
+        LOG_BASE("logBase", 5000),
+        LOG("log", 100);
 
         private final String name;
         private final BigInteger steps;
@@ -154,7 +198,22 @@ public class StepTest extends TestBase {
                     break;
             }
             LOG.info("addOperation val : " + val + ", valSize : " + valSize);
-            expectedStep = expectedStep.add(stepType.getSteps().multiply(BigInteger.valueOf(valSize)));
+            var length = BigInteger.valueOf(valSize);
+            BigInteger steps;
+            if (isSchemaZero()) {
+                steps = stepType.getSteps().multiply(length);
+            } else {
+                if (StepType.GET.equals(stepType)) {
+                    var getBase = STEP_COSTS.getOrDefault(StepType.GET_BASE.getName(), BigInteger.ZERO);
+                    steps = getBase.add(StepType.GET_V1.getSteps().multiply(length));
+                } else if (StepType.DELETE.equals(stepType)) {
+                    var deleteBase = STEP_COSTS.getOrDefault(StepType.DELETE_BASE.getName(), BigInteger.ZERO);
+                    steps = deleteBase.add(StepType.DELETE.getSteps().multiply(length));
+                } else {
+                    steps = calcStoreStep(length, StepType.REPLACE.equals(stepType), length);
+                }
+            }
+            expectedStep = expectedStep.add(steps);
         }
 
         BigInteger calcTransactionStep(Transaction tx) {
@@ -193,6 +252,22 @@ public class StepTest extends TestBase {
             return stepUsed.add(StepType.INPUT.getSteps().multiply(BigInteger.valueOf(dataLen)));
         }
 
+        BigInteger calcStoreStep(BigInteger length, boolean update, BigInteger prevLen) {
+            var setBase = STEP_COSTS.getOrDefault(StepType.SET_BASE.getName(), BigInteger.ZERO);
+            var deleteBase = STEP_COSTS.getOrDefault(StepType.DELETE_BASE.getName(), BigInteger.ZERO);
+            var replaceBase = setBase.add(deleteBase).divide(BigInteger.TWO);
+            var steps = setBase.add(StepType.SET.getSteps().multiply(length));
+            if (update) {
+                if (isSchemaZero()) {
+                    steps = StepType.REPLACE.getSteps().multiply(length);
+                } else {
+                    steps = steps.subtract(setBase).add(replaceBase)
+                            .add(StepType.DELETE.getSteps().multiply(prevLen));
+                }
+            }
+            return steps;
+        }
+
         BigInteger calcDeployStep(Transaction tx, byte[] content, boolean update) {
             // get the default transaction steps first
             BigInteger stepUsed = calcTransactionStep(tx);
@@ -201,20 +276,17 @@ public class StepTest extends TestBase {
             RpcObject params = tx.getData().asObject().getItem("params").asObject();
             String name = params.getItem("name").asString();
             BigInteger nameLength = BigInteger.valueOf(name.length());
-            if (update) {
-                stepUsed = stepUsed.add(StepType.REPLACE.getSteps().multiply(nameLength));
-            } else {
-                stepUsed = stepUsed.add(StepType.SET.getSteps().multiply(nameLength));
-            }
+            stepUsed = stepUsed.add(calcStoreStep(nameLength, update, BigInteger.TEN));
             // contractCreate or contractUpdate
             // contractSet * codeLen
             BigInteger codeLen = BigInteger.valueOf(content.length);
             if (update) {
-                stepUsed = StepType.CONTRACT_UPDATE.getSteps().add(stepUsed);
+                stepUsed = stepUsed.add(STEP_COSTS.get(StepType.CONTRACT_UPDATE.getName()));
             } else {
-                stepUsed = StepType.CONTRACT_CREATE.getSteps().add(stepUsed);
+                stepUsed = stepUsed.add(STEP_COSTS.get(StepType.CONTRACT_CREATE.getName()));
             }
-            return stepUsed.add(StepType.CONTRACT_SET.getSteps().multiply(codeLen));
+            var contractSet = STEP_COSTS.get(StepType.CONTRACT_SET.getName());
+            return stepUsed.add(contractSet.multiply(codeLen));
         }
 
         BigInteger calcCallStep(Transaction tx) {
@@ -292,6 +364,16 @@ public class StepTest extends TestBase {
             BigInteger bal = txHandler.getBalance(from.getAddress());
             return prevBal.subtract(bal.add(value));
         }
+    }
+
+    @Test
+    public void compareStepCosts() {
+        LOG.infoEntering("compareStepCosts");
+        LOG.info("schema: " + SCHEMA);
+        var stepCosts = isSchemaZero() ? stepCostsV0 : stepCostsV1;
+        assertEquals(stepCosts.size(), STEP_COSTS.size());
+        assertTrue(stepCosts.stream().allMatch(e -> e.steps.equals(STEP_COSTS.get(e.name))));
+        LOG.infoExiting();
     }
 
     @Test
