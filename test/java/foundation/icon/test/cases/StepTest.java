@@ -24,6 +24,7 @@ import foundation.icon.icx.data.Address;
 import foundation.icon.icx.data.Bytes;
 import foundation.icon.icx.data.TransactionResult;
 import foundation.icon.icx.transport.http.HttpProvider;
+import foundation.icon.icx.transport.jsonrpc.RpcArray;
 import foundation.icon.icx.transport.jsonrpc.RpcObject;
 import foundation.icon.icx.transport.jsonrpc.RpcValue;
 import foundation.icon.test.Constants;
@@ -458,6 +459,68 @@ public class StepTest extends TestBase {
         usedFee = stx.deploy(testWallets[0], scoreAddr, Score.getFilePath("hello_world"), params);
         LOG.infoExiting();
         assertEquals(stx.expectedFee(), usedFee);
+        LOG.infoExiting();
+    }
+
+    @Test
+    public void testArrayDB() throws Exception {
+        LOG.infoEntering("testArrayDB");
+        LOG.infoEntering("deploy", "db_step");
+        Score dbScore = txHandler.deploy(testWallets[3], Score.getFilePath("db_step"), null);
+        LOG.infoExiting();
+
+        LOG.infoEntering("invoke", "setAddresses");
+        KeyWallet caller = testWallets[1];
+        KeyWallet[] wallets = new KeyWallet[5];
+        var arrayItems = new RpcArray.Builder();
+        for (int i = 0; i < wallets.length; i++) {
+            KeyWallet wallet = KeyWallet.create();
+            wallets[i] = wallet;
+            arrayItems.add(new RpcValue(wallet.getAddress()));
+        }
+        RpcObject params = new RpcObject.Builder()
+                .put("addresses", arrayItems.build())
+                .build();
+        var result = txHandler.getResult(dbScore.invoke(caller, "setAddresses", params,
+                BigInteger.ZERO, BigInteger.valueOf(400000)));
+        assertSuccess(result);
+        LOG.infoExiting();
+
+        LOG.infoEntering("invoke", "findAddress - found");
+        var address = wallets[1].getAddress();
+        params = new RpcObject.Builder()
+                .put("_type", new RpcValue(BigInteger.ZERO))
+                .put("address", new RpcValue(address))
+                .build();
+        result = txHandler.getResult(dbScore.invoke(caller, "findAddress", params));
+        assertSuccess(result);
+
+        params = new RpcObject.Builder()
+                .put("_type", new RpcValue(BigInteger.ONE))
+                .put("address", new RpcValue(address))
+                .build();
+        var result1 = txHandler.getResult(dbScore.invoke(caller, "findAddress", params));
+        assertSuccess(result);
+        assertEquals(result.getStepUsed(), result1.getStepUsed());
+        LOG.infoExiting();
+
+        LOG.infoEntering("invoke", "findAddress - not found");
+        var address1 = KeyWallet.create().getAddress();
+        params = new RpcObject.Builder()
+                .put("_type", new RpcValue(BigInteger.ZERO))
+                .put("address", new RpcValue(address1))
+                .build();
+        result = txHandler.getResult(dbScore.invoke(caller, "findAddress", params));
+        assertSuccess(result);
+
+        params = new RpcObject.Builder()
+                .put("_type", new RpcValue(BigInteger.ONE))
+                .put("address", new RpcValue(address1))
+                .build();
+        result1 = txHandler.getResult(dbScore.invoke(caller, "findAddress", params));
+        assertSuccess(result);
+        assertEquals(result.getStepUsed(), result1.getStepUsed());
+        LOG.infoExiting();
         LOG.infoExiting();
     }
 

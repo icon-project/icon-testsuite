@@ -46,6 +46,29 @@ class DbStep(IconScoreBase):
         self._dict_str[str(key)] = str(val)
 
     @external
+    def setAddresses(self, addresses: List[Address]):
+        for addr in addresses:
+            self._arr_addr.put(addr)
+
+    @external
+    def findAddress(self, _type: int, address: Address):
+        if _type == 0:
+            it = iter(self._arr_addr)
+            while True:
+                try:
+                    addr = next(it)
+                    if addr == address:
+                        Logger.debug(">>> type0 found")
+                        return
+                except StopIteration:
+                    break
+        else:
+            if address in self._arr_addr:
+                Logger.debug(">>> type1 found")
+                return
+        Logger.debug(">>> Not found")
+
+    @external
     def setToVar(self, v_int: int, v_str: str = None, v_bytes: bytes = None, v_addr: Address = None):
         if v_addr is not None:
             self._var_addr.set(v_addr)
