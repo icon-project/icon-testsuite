@@ -132,7 +132,7 @@ public class StepTest extends TestBase {
         SCHEMA("schema", 1),
         CONTRACT_UPDATE_V1("contractUpdate", 1000000000),
         CONTRACT_SET_V1("contractSet", 15000),
-        GET_V1("get", 80),
+        GET_V1("get", 25),
         GET_BASE("getBase", 3000),
         SET_BASE("setBase", 10000),
         DELETE_BASE("deleteBase", 200),
