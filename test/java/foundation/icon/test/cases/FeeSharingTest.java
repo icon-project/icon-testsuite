@@ -25,6 +25,7 @@ import foundation.icon.icx.transport.http.HttpProvider;
 import foundation.icon.icx.transport.jsonrpc.RpcArray;
 import foundation.icon.icx.transport.jsonrpc.RpcItem;
 import foundation.icon.icx.transport.jsonrpc.RpcObject;
+import foundation.icon.test.Constants;
 import foundation.icon.test.Env;
 import foundation.icon.test.EventLog;
 import foundation.icon.test.TestBase;
@@ -100,12 +101,15 @@ public class FeeSharingTest extends TestBase {
         LOG.infoEntering("invoke", "setValue() before adding deposit");
         FeeShareScore feeShareAlice = new FeeShareScore(feeShareOwner, aliceWallet);
         BigInteger aliceBalance = txHandler.getBalance(aliceWallet.getAddress());
+        BigInteger treasuryBalance = txHandler.getBalance(Constants.TREASURY_ADDRESS);
         result = feeShareAlice.setValue("alice #1");
         assertSuccess(result);
         LOG.info("value: " + feeShareAlice.getValue());
         // check if the balance was decreased
         BigInteger fee = result.getStepUsed().multiply(result.getStepPrice());
         aliceBalance = ensureIcxBalance(aliceWallet.getAddress(), aliceBalance.subtract(fee));
+        // check the treasury balance
+        treasuryBalance = ensureIcxBalance(Constants.TREASURY_ADDRESS, treasuryBalance.add(fee));
         LOG.infoExiting();
 
         // add deposit 2000 to SCORE
@@ -126,6 +130,9 @@ public class FeeSharingTest extends TestBase {
         ensureIcxBalance(ownerWallet.getAddress(), ownerBalance);
         // check the SCORE balance
         ensureIcxBalance(feeShareOwner.getAddress(), BigInteger.ZERO);
+        // check the treasury balance
+        fee = result.getStepUsed().multiply(result.getStepPrice());
+        treasuryBalance = ensureIcxBalance(Constants.TREASURY_ADDRESS, treasuryBalance.add(fee));
         LOG.infoExiting();
 
         // set value after adding deposit (user balance should NOT be decreased)
@@ -143,6 +150,8 @@ public class FeeSharingTest extends TestBase {
         // check if the balance was NOT changed
         aliceBalance = ensureIcxBalance(aliceWallet.getAddress(), aliceBalance);
         printDepositInfo(feeShareOwner.getAddress(), true);
+        // check the treasury balance
+        ensureIcxBalance(Constants.TREASURY_ADDRESS, treasuryBalance.add(fee));
         LOG.infoExiting();
 
         // add another deposit 3000 to SCORE
