@@ -34,7 +34,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 
 public class FeeShareScore extends Score {
-    private static final BigInteger STEPS = Constants.DEFAULT_STEPS;
+    private static final BigInteger STEPS = Constants.DEFAULT_STEPS.multiply(BigInteger.valueOf(3));
     private final Wallet wallet;
 
     public FeeShareScore(Score other, Wallet wallet) {
@@ -79,7 +79,6 @@ public class FeeShareScore extends Score {
                 .from(wallet.getAddress())
                 .to(getAddress())
                 .value(depositAmount)
-                .stepLimit(STEPS)
                 .deposit()
                 .add()
                 .build();
@@ -93,7 +92,6 @@ public class FeeShareScore extends Score {
                 .nid(getNetworkId())
                 .from(wallet.getAddress())
                 .to(getAddress())
-                .stepLimit(STEPS)
                 .deposit()
                 .withdraw(depositId)
                 .build();
@@ -107,7 +105,6 @@ public class FeeShareScore extends Score {
                 .nid(getNetworkId())
                 .from(wallet.getAddress())
                 .to(getAddress())
-                .stepLimit(STEPS)
                 .deposit()
                 .withdraw(amount)
                 .build();
@@ -121,7 +118,6 @@ public class FeeShareScore extends Score {
                 .nid(getNetworkId())
                 .from(wallet.getAddress())
                 .to(getAddress())
-                .stepLimit(STEPS)
                 .deposit()
                 .withdraw()
                 .build();

@@ -52,6 +52,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class StepTest extends TestBase {
+    private static final BigInteger STEPS = Constants.DEFAULT_STEPS.multiply(BigInteger.valueOf(3));
     private static TransactionHandler txHandler;
     private static KeyWallet[] testWallets;
 
@@ -301,14 +302,13 @@ public class StepTest extends TestBase {
                     .nid(txHandler.getNetworkId())
                     .from(from.getAddress())
                     .to(to)
-                    .value(value)
-                    .stepLimit(Constants.DEFAULT_STEPS);
+                    .value(value);
             if (msg != null) {
                 builder.message(msg);
             }
             Transaction transaction = builder.build();
             this.expectedStep = calcTransactionStep(transaction);
-            Bytes txHash = txHandler.invoke(from, transaction);
+            Bytes txHash = txHandler.invoke(from, transaction, STEPS);
             assertSuccess(txHandler.getResult(txHash));
             return getUsedFee(from, value, prevBal);
         }
@@ -317,18 +317,17 @@ public class StepTest extends TestBase {
             BigInteger prevBal = txHandler.getBalance(from.getAddress());
             byte[] content = ZipFile.zipContent(contentPath);
             if (to == null) {
-                to = Constants.ZERO_ADDRESS;
+                to = Constants.SYSTEM_ADDRESS;
             }
             Transaction transaction = TransactionBuilder.newBuilder()
                     .nid(txHandler.getNetworkId())
                     .from(from.getAddress())
                     .to(to)
-                    .stepLimit(new BigInteger("70000000", 16))
                     .deploy(Constants.CONTENT_TYPE_PYTHON, content)
                     .params(params)
                     .build();
-            this.expectedStep = calcDeployStep(transaction, content, to != Constants.ZERO_ADDRESS);
-            Bytes txHash = txHandler.invoke(from, transaction);
+            this.expectedStep = calcDeployStep(transaction, content, to != Constants.SYSTEM_ADDRESS);
+            Bytes txHash = txHandler.invoke(from, transaction, new BigInteger("70000000", 16));
             TransactionResult result = txHandler.getResult(txHash);
             assertSuccess(result);
             this.scoreAddr = new Address(result.getScoreAddress());
@@ -340,8 +339,7 @@ public class StepTest extends TestBase {
             TransactionBuilder.Builder builder = TransactionBuilder.newBuilder()
                     .nid(txHandler.getNetworkId())
                     .from(from.getAddress())
-                    .to(to)
-                    .stepLimit(stepLimit);
+                    .to(to);
             Transaction transaction;
             if (params != null) {
                 transaction = builder.call(method).params(params).build();
@@ -350,7 +348,7 @@ public class StepTest extends TestBase {
             }
             this.expectedStep = calcCallStep(transaction);
 
-            Bytes txHash = txHandler.invoke(from, transaction);
+            Bytes txHash = txHandler.invoke(from, transaction, stepLimit);
             TransactionResult result = txHandler.getResult(txHash);
             usedFee = getUsedFee(from, BigInteger.ZERO, prevBal);
             if (!Constants.STATUS_SUCCESS.equals(result.getStatus())) {
@@ -413,14 +411,14 @@ public class StepTest extends TestBase {
                 .put("to", new RpcValue(toScore.getAddress()))
                 .put("amount", new RpcValue(BigInteger.ZERO))
                 .build();
-        BigInteger baseFee = stx.call(testWallets[1], fromScore.getAddress(), "transferICX", params, Constants.DEFAULT_STEPS);
+        BigInteger baseFee = stx.call(testWallets[1], fromScore.getAddress(), "transferICX", params, STEPS);
         BigInteger expectedFee = baseFee.add(STEP_PRICE.multiply(StepType.CONTRACT_CALL.getSteps()));
         // transfer icx and compare with the base fee
         params = new RpcObject.Builder()
                 .put("to", new RpcValue(toScore.getAddress()))
                 .put("amount", new RpcValue(BigInteger.ONE))
                 .build();
-        BigInteger usedFee = stx.call(testWallets[1], fromScore.getAddress(), "transferICX", params, Constants.DEFAULT_STEPS);
+        BigInteger usedFee = stx.call(testWallets[1], fromScore.getAddress(), "transferICX", params, STEPS);
         assertEquals(expectedFee, usedFee);
         assertEquals(BigInteger.ONE, txHandler.getBalance(toScore.getAddress()));
         LOG.infoExiting();
@@ -431,7 +429,7 @@ public class StepTest extends TestBase {
                 .put("to", new RpcValue(callee.getAddress()))
                 .put("amount", new RpcValue(BigInteger.ONE))
                 .build();
-        usedFee = stx.call(testWallets[1], fromScore.getAddress(), "transferICX", params, Constants.DEFAULT_STEPS);
+        usedFee = stx.call(testWallets[1], fromScore.getAddress(), "transferICX", params, STEPS);
         assertEquals(expectedFee, usedFee);
         assertEquals(BigInteger.ONE, txHandler.getBalance(callee.getAddress()));
         LOG.infoExiting();
@@ -593,7 +591,7 @@ public class StepTest extends TestBase {
                 }
                 BigInteger stepLimit = (test == VarTest.VAR_EXACT) ? edgeLimit[i]
                         : (test == VarTest.VAR_EDGE) ? edgeLimit[i].subtract(BigInteger.ONE)
-                        : Constants.DEFAULT_STEPS;
+                        : STEPS;
                 LOG.infoEntering("invoke", "(" + test + ") method=" + test.method + ", param=" + param +
                         ", val=" + val + ", limit=" + stepLimit);
                 try {

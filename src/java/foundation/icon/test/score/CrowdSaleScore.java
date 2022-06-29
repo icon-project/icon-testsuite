@@ -33,6 +33,8 @@ import java.math.BigInteger;
 import static foundation.icon.test.Env.LOG;
 
 public class CrowdSaleScore extends Score {
+    private static final BigInteger STEPS = Constants.DEFAULT_STEPS.multiply(BigInteger.valueOf(3));
+
     public static CrowdSaleScore mustDeploy(TransactionHandler txHandler, Wallet owner,
                                             Address tokenAddress, BigInteger fundingGoalInIcx)
             throws ResultTimeoutException, TransactionFailureException, IOException {
@@ -54,12 +56,12 @@ public class CrowdSaleScore extends Score {
 
     public TransactionResult checkGoalReached(Wallet wallet)
             throws ResultTimeoutException, IOException {
-        return invokeAndWaitResult(wallet, "checkGoalReached", null, null, Constants.DEFAULT_STEPS);
+        return invokeAndWaitResult(wallet, "checkGoalReached", null, null, STEPS);
     }
 
     public TransactionResult safeWithdrawal(Wallet wallet)
             throws ResultTimeoutException, IOException {
-        return invokeAndWaitResult(wallet, "safeWithdrawal", null, null, Constants.DEFAULT_STEPS);
+        return invokeAndWaitResult(wallet, "safeWithdrawal", null, null, STEPS);
     }
 
     public void ensureCheckGoalReached(Wallet wallet) throws Exception {

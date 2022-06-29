@@ -36,7 +36,7 @@ import java.util.Arrays;
 
 import static foundation.icon.test.Env.LOG;
 
-public class SampleTokenScore extends Score {
+public class SampleTokenScore extends JavaScore {
     private static final Class<?>[] javaTokenClasses = new Class<?>[]{
             IRC2BasicToken.class, IRC2Basic.class, IRC2.class};
 
@@ -54,7 +54,7 @@ public class SampleTokenScore extends Score {
         if (contentType.equals(Constants.CONTENT_TYPE_PYTHON)) {
             score = txHandler.deploy(owner, getFilePath("sample_token"), getParams(decimals, initialSupply));
         } else if (contentType.equals(Constants.CONTENT_TYPE_JAVA)) {
-            score = txHandler.deploy(owner, javaTokenClasses, getParams(decimals, initialSupply));
+            score = JavaScore.deployScore(txHandler, owner, javaTokenClasses, getParams(decimals, initialSupply));
         } else {
             throw new IllegalArgumentException("Unknown content type");
         }

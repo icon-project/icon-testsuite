@@ -26,7 +26,7 @@ import foundation.icon.test.TransactionHandler;
 
 import java.io.IOException;
 
-public class HelloWorldScore extends Score {
+public class HelloWorldScore extends JavaScore {
     public HelloWorldScore(Score other) {
         super(other);
     }
@@ -44,7 +44,8 @@ public class HelloWorldScore extends Score {
         if (contentType.equals(Constants.CONTENT_TYPE_PYTHON)) {
             return new HelloWorldScore(txHandler.deploy(wallet, getFilePath("hello_world"), params));
         } else if (contentType.equals(Constants.CONTENT_TYPE_JAVA)) {
-            return new HelloWorldScore(txHandler.deploy(wallet, contract.HelloWorld.class, params));
+            return new HelloWorldScore(JavaScore.deployScore(txHandler, wallet,
+                    new Class<?>[]{contract.HelloWorld.class}, params));
         } else {
             throw new IllegalArgumentException("Unknown content type");
         }
